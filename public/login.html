@@ -11,11 +11,38 @@
 </head>
 <body class="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.16),_transparent_35%),linear-gradient(180deg,_#f8fbff_0%,_#eef4ff_100%)] font-['Inter'] text-slate-900" data-page="login">
   <main class="mx-auto flex min-h-screen max-w-6xl flex-col justify-center gap-10 px-6 py-10 lg:flex-row lg:items-center">
-    <section class="max-w-xl">
-      <p class="text-sm uppercase tracking-[0.28em] text-sky-600">Workspace Access</p>
-      <h1 class="mt-4 font-['Plus_Jakarta_Sans'] text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl">登录、注册、邮箱认证</h1>
-      <p class="mt-4 text-lg leading-8 text-slate-600">普通用户注册时需要先完成邮箱验证码认证，注册完成后仅支持密码登录；管理员可直接使用邮箱和密码登录。登录成功后会返回你原本要访问的页面。</p>
+    <section class="max-w-2xl">
+      <p class="text-sm uppercase tracking-[0.28em] text-sky-600">Native Image + Video Studio</p>
+      <h1 class="mt-4 font-['Plus_Jakarta_Sans'] text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl">原生 gpt-image-2 与原生 SeedDance 2.0 的创作工作台</h1>
+      <p class="mt-4 text-lg leading-8 text-slate-600">面向图片与视频创作的统一入口。图片侧直连原生 <strong class="font-semibold text-slate-900">gpt-image-2</strong>，适合海报、角色、产品和视觉概念生成；视频侧直连原生 <strong class="font-semibold text-slate-900">SeedDance 2.0</strong>，适合短片、镜头草案和多模态视频创作。</p>
+      <div class="mt-6 flex flex-wrap gap-3">
+        <span class="rounded-full border border-sky-200 bg-white/80 px-4 py-2 text-sm font-semibold text-sky-700 shadow-[0_18px_42px_-28px_rgba(15,23,42,0.24)]">原生 gpt-image-2 接口</span>
+        <span class="rounded-full border border-indigo-200 bg-white/80 px-4 py-2 text-sm font-semibold text-indigo-700 shadow-[0_18px_42px_-28px_rgba(15,23,42,0.24)]">原生 SeedDance 2.0 接口</span>
+        <span class="rounded-full border border-emerald-200 bg-white/80 px-4 py-2 text-sm font-semibold text-emerald-700 shadow-[0_18px_42px_-28px_rgba(15,23,42,0.24)]">支持图片与视频创作</span>
+      </div>
       <div class="mt-8 grid gap-4 sm:grid-cols-2">
+        <article class="rounded-[24px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(239,246,255,0.82))] p-5 shadow-[0_24px_60px_-32px_rgba(15,23,42,0.28)] backdrop-blur">
+          <span class="material-symbols-outlined text-sky-600">imagesmode</span>
+          <h2 class="mt-3 text-lg font-semibold">图片创作</h2>
+          <p class="mt-2 text-sm text-slate-600">基于原生 gpt-image-2 生成海报、KV、商品图、角色设定和视觉草图，也支持延续上一次图片结果继续修改。</p>
+          <ul class="mt-3 space-y-2 text-sm text-slate-500">
+            <li>多张输出计费</li>
+            <li>支持参考图与二次编辑</li>
+            <li>适合营销物料与概念设计</li>
+          </ul>
+        </article>
+        <article class="rounded-[24px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(238,242,255,0.82))] p-5 shadow-[0_24px_60px_-32px_rgba(15,23,42,0.28)] backdrop-blur">
+          <span class="material-symbols-outlined text-indigo-600">movie_edit</span>
+          <h2 class="mt-3 text-lg font-semibold">视频创作</h2>
+          <p class="mt-2 text-sm text-slate-600">基于原生 SeedDance 2.0 生成短视频片段，支持文本驱动与图片附件组合，适合镜头预演和创意验证。</p>
+          <ul class="mt-3 space-y-2 text-sm text-slate-500">
+            <li>按秒计费，先估价再创建任务</li>
+            <li>支持首帧、尾帧、参考图附件</li>
+            <li>适合广告、剧情草案和动态展示</li>
+          </ul>
+        </article>
+      </div>
+      <div class="mt-8 grid gap-4 sm:grid-cols-3">
         <article class="rounded-[24px] border border-white/70 bg-white/80 p-5 shadow-[0_24px_60px_-32px_rgba(15,23,42,0.28)] backdrop-blur">
           <span class="material-symbols-outlined text-sky-600">person_add</span>
           <h2 class="mt-3 text-lg font-semibold">公开注册</h2>
@@ -25,6 +52,11 @@
           <span class="material-symbols-outlined text-sky-600">admin_panel_settings</span>
           <h2 class="mt-3 text-lg font-semibold">管理员入口</h2>
           <p class="mt-2 text-sm text-slate-600">管理员账号改为直接使用邮箱和密码登录，不再依赖开发验证码。</p>
+        </article>
+        <article class="rounded-[24px] border border-white/70 bg-white/80 p-5 shadow-[0_24px_60px_-32px_rgba(15,23,42,0.28)] backdrop-blur">
+          <span class="material-symbols-outlined text-sky-600">payments</span>
+          <h2 class="mt-3 text-lg font-semibold">统一余额</h2>
+          <p class="mt-2 text-sm text-slate-600">账户以人民币余额运行，图片和视频会在提交前显示预计费用，成功后再扣费。</p>
         </article>
       </div>
     </section>
