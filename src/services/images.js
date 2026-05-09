@@ -1,5 +1,6 @@
 import { badRequest } from '../errors.js';
 import { requestJson } from '../http-client.js';
+import { applyUsageCharge, calculateImageCharge, ensureSufficientBalance } from './billing.js';
 import { nowIso, randomId, requireObject } from '../utils.js';
 
 function extractPrompt(payload) {
@@ -133,7 +134,7 @@ function normalizeImageItems(responseData) {
   }));
 }
 
-function buildHistoryEntry(payload, upstreamPayload, responseData, userId) {
+function buildHistoryEntry(payload, upstreamPayload, responseData, userId, billing = {}) {
   const timestamp = nowIso();
   const sessionId =
     typeof payload.sessionId === 'string' && payload.sessionId.trim() !== ''
@@ -180,6 +181,11 @@ function buildHistoryEntry(payload, upstreamPayload, responseData, userId) {
     previousResponseId: responseData?.previous_response_id || responseData?.previousResponseId || '',
     generationCallId: responseData?.generation_call_id || responseData?.generationCallId || '',
     images: normalizeImageItems(responseData),
+    estimatedCharge: billing.estimatedCharge ?? 0,
+    chargedAmount: billing.chargedAmount ?? 0,
+    currency: billing.currency || 'CNY',
+    billingStatus: billing.billingStatus || '',
+    billingEventId: billing.billingEventId || '',
     createdAt: timestamp,
     updatedAt: timestamp,
   };
@@ -266,6 +272,10 @@ export async function createImageGeneration({ config, store, logger, context }, 
   if (typeof payload.prompt !== 'string' && !Array.isArray(payload.input)) {
     throw badRequest('Image generation requires "prompt" or "input"');
   }
+  const pricing = calculateImageCharge(payload);
+  await ensureSufficientBalance(store, context.userId, pricing.amount, {
+    operation: 'image_generation',
+  });
 
   const generationPayload = buildGenerationPayload(payload, runtimeConfig.openai.defaultModel);
   const selectedModel = generationPayload.model || '';
@@ -331,6 +341,27 @@ export async function createImageGeneration({ config, store, logger, context }, 
     requestId: context?.requestId,
     operation,
   });
+  const chargeSourceId =
+    result.data?.response_id || result.data?.responseId || result.data?.generation_call_id || randomId('image_charge');
+  const chargeResult = await applyUsageCharge(store, {
+    userId: context.userId,
+    amount: pricing.amount,
+    type: 'image_charge',
+    sourceType: 'image_generation',
+    sourceId: chargeSourceId,
+    idempotencyKey: `image_charge:${chargeSourceId}`,
+    metadata: {
+      model: selectedModel,
+      outputCount: pricing.outputCount,
+    },
+  });
+  const billing = {
+    estimatedCharge: pricing.amount,
+    chargedAmount: pricing.amount,
+    currency: pricing.currency,
+    billingStatus: 'charged',
+    billingEventId: chargeResult.billingEvent?.id || '',
+  };
 
   const historyPayload = {
     ...payload,
@@ -339,7 +370,7 @@ export async function createImageGeneration({ config, store, logger, context }, 
     reference_downgraded: referenceDowngraded,
     reference_downgrade_reason: referenceDowngradeReason,
   };
-  const historyEntry = buildHistoryEntry(historyPayload, storedRequestPayload, result.data, context.userId);
+  const historyEntry = buildHistoryEntry(historyPayload, storedRequestPayload, result.data, context.userId, billing);
   if (store) {
     await store.upsertImageHistory(historyEntry);
   }
@@ -357,6 +388,11 @@ export async function createImageGeneration({ config, store, logger, context }, 
     history_id: historyEntry.id,
     sessionId: historyEntry.sessionId,
     session_id: historyEntry.sessionId,
+    estimatedCharge: pricing.amount,
+    chargedAmount: pricing.amount,
+    currency: pricing.currency,
+    billingStatus: 'charged',
+    billingEventId: chargeResult.billingEvent?.id || '',
     images: historyEntry.images,
     history: historyEntry,
   };

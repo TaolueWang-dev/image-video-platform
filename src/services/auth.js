@@ -75,6 +75,7 @@ function sanitizeAdmin(admin) {
     email: admin.email,
     role: admin.role,
     status: admin.status,
+    hasPassword: Boolean(admin.passwordHash),
     createdAt: admin.createdAt,
     updatedAt: admin.updatedAt,
     lastLoginAt: admin.lastLoginAt || '',
@@ -208,6 +209,53 @@ function isActiveSubject(subject) {
   return Boolean(subject) && subject.status === 'active';
 }
 
+async function deliverVerificationCode(deps, options) {
+  const { config, logger, mailer } = deps;
+  const {
+    email,
+    subjectType,
+    code,
+    createdAt,
+    requestId,
+    purpose = 'login',
+  } = options;
+
+  const expiresAt = addMilliseconds(createdAt, config.auth.codeTtlMs);
+  if (config.auth.emailDeliveryMode === 'disabled') {
+    throw new AppError(503, 'Email verification delivery is disabled', {
+      code: 'email_delivery_disabled',
+      purpose,
+    });
+  }
+  if (config.auth.emailDeliveryMode === 'log') {
+    logger.info('auth.code_issued', {
+      requestId,
+      email,
+      subjectType,
+      code,
+      expiresAt,
+      purpose,
+    });
+  }
+  if (config.auth.emailDeliveryMode === 'smtp') {
+    await mailer.sendAuthCodeEmail({
+      toEmail: email,
+      code,
+      expiresInSeconds: Math.floor(config.auth.codeTtlMs / 1000),
+      purpose,
+    });
+  }
+
+  const delivery = {
+    mode: config.auth.emailDeliveryMode,
+    expiresInSeconds: Math.floor(config.auth.codeTtlMs / 1000),
+  };
+  if (config.auth.exposeDevCode) {
+    delivery.devCode = code;
+  }
+  return delivery;
+}
+
 function buildMePayload(session, subject) {
   const user = session?.subjectType === 'user' ? sanitizeUser(subject) : null;
   const admin = session?.subjectType === 'admin' ? sanitizeAdmin(subject) : null;
@@ -242,7 +290,7 @@ function buildMePayload(session, subject) {
 }
 
 export async function requestEmailLoginCode(deps, payload, context) {
-  const { config, store, rateLimiter, logger } = deps;
+  const { config, store, rateLimiter } = deps;
   const email = normalizeEmail(payload?.email);
   const requestedSubjectType = normalizeSubjectType(payload?.subjectType);
   const loginTarget = await resolveLoginTarget(store, email, requestedSubjectType);
@@ -282,22 +330,14 @@ export async function requestEmailLoginCode(deps, payload, context) {
     requestIp: context.ip,
   });
 
-  const delivery = {
-    mode: config.auth.emailDeliveryMode,
-    expiresInSeconds: Math.floor(config.auth.codeTtlMs / 1000),
-  };
-  if (config.auth.emailDeliveryMode === 'log') {
-    logger.info('auth.code_issued', {
-      requestId: context.requestId,
-      email,
-      subjectType: loginTarget.subjectType,
-      code,
-      expiresAt: addMilliseconds(createdAt, config.auth.codeTtlMs),
-    });
-  }
-  if (config.auth.exposeDevCode) {
-    delivery.devCode = code;
-  }
+  const delivery = await deliverVerificationCode(deps, {
+    email,
+    subjectType: loginTarget.subjectType,
+    code,
+    createdAt,
+    requestId: context.requestId,
+    purpose: 'login',
+  });
 
   return {
     ok: true,
@@ -359,8 +399,66 @@ export async function verifyEmailLoginCode(deps, req, payload, context) {
   });
 }
 
+export async function verifyRegistrationCode(deps, payload, context) {
+  const { config, store } = deps;
+  const email = normalizeEmail(payload?.email);
+  const code = normalizeCode(payload?.code, config.auth.codeLength);
+
+  const user = await store.findUserByEmail(email);
+  if (!user) {
+    throw badRequest('Unknown user account');
+  }
+  if (user.status !== 'pending_activation') {
+    throw badRequest('User account is already active');
+  }
+
+  const codeRecord = await store.findActiveEmailLoginCode(
+    email,
+    'user',
+    sha256(code),
+    nowIso(),
+  );
+  if (!codeRecord) {
+    throw badRequest('Invalid or expired verification code');
+  }
+
+  const timestamp = nowIso();
+  await store.markEmailLoginCodeUsed(codeRecord.id, timestamp);
+  const nextUser = {
+    ...user,
+    status: 'active',
+    updatedAt: timestamp,
+  };
+  await store.replaceUser(nextUser);
+  await store.appendAuditEvent({
+    type: 'user.activated',
+    actorType: 'user',
+    actorId: nextUser.id,
+    targetType: 'user',
+    targetId: nextUser.id,
+    metadata: {
+      email: nextUser.email,
+      method: 'email_code',
+      ip: context.ip,
+    },
+    createdAt: timestamp,
+  });
+
+  return {
+    ok: true,
+    activated: true,
+    email: nextUser.email,
+    user: sanitizeUser(nextUser),
+    data: {
+      activated: true,
+      email: nextUser.email,
+      user: sanitizeUser(nextUser),
+    },
+  };
+}
+
 export async function registerWithPassword(deps, req, payload, context) {
-  const { config, store, logger } = deps;
+  const { config, store } = deps;
   if (!config.auth.registrationEnabled) {
     throw new AppError(403, 'Public registration is disabled');
   }
@@ -372,21 +470,27 @@ export async function registerWithPassword(deps, req, payload, context) {
     store.findUserByEmail(email),
     store.findAdminByEmail(email),
   ]);
-  if (existingUser || existingAdmin) {
+  if (existingAdmin || (existingUser && existingUser.status !== 'pending_activation')) {
     throw badRequest('Account email already exists');
   }
 
   const timestamp = nowIso();
   const code = randomDigits(config.auth.codeLength);
-  const user = {
-    id: randomId('user'),
-    email,
-    status: 'pending_activation',
-    passwordHash: hashPassword(password),
-    createdAt: timestamp,
-    updatedAt: timestamp,
-    lastLoginAt: '',
-  };
+  const user = existingUser
+    ? {
+        ...existingUser,
+        passwordHash: hashPassword(password),
+        updatedAt: timestamp,
+      }
+    : {
+        id: randomId('user'),
+        email,
+        status: 'pending_activation',
+        passwordHash: hashPassword(password),
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        lastLoginAt: '',
+      };
 
   await store.replaceUser(user);
   await store.getAccountByUserId(user.id);
@@ -416,24 +520,14 @@ export async function registerWithPassword(deps, req, payload, context) {
     },
     createdAt: timestamp,
   });
-  if (config.auth.emailDeliveryMode === 'log') {
-    logger.info('auth.code_issued', {
-      requestId: context.requestId,
-      email,
-      subjectType: 'user',
-      code,
-      expiresAt: addMilliseconds(timestamp, config.auth.codeTtlMs),
-      purpose: 'activation',
-    });
-  }
-
-  const delivery = {
-    mode: config.auth.emailDeliveryMode,
-    expiresInSeconds: Math.floor(config.auth.codeTtlMs / 1000),
-  };
-  if (config.auth.exposeDevCode) {
-    delivery.devCode = code;
-  }
+  const delivery = await deliverVerificationCode(deps, {
+    email,
+    subjectType: 'user',
+    code,
+    createdAt: timestamp,
+    requestId: context.requestId,
+    purpose: 'activation',
+  });
 
   return {
     ok: true,
@@ -458,8 +552,31 @@ export async function loginWithPassword(deps, req, payload, context) {
   const password = normalizePassword(payload?.password, config.auth.passwordMinLength);
   const requestedSubjectType = normalizeSubjectType(payload?.subjectType || 'user');
 
-  if (requestedSubjectType !== 'user') {
-    throw badRequest('Password login currently supports only "user" accounts');
+  if (requestedSubjectType === 'admin') {
+    const admin = await store.findAdminByEmail(email);
+    if (!admin) {
+      throw badRequest('Unknown admin account');
+    }
+    assertLoginAllowed('admin', admin);
+    if (!admin.passwordHash) {
+      throw badRequest('Admin password login is not configured');
+    }
+    if (!verifyPassword(password, admin.passwordHash)) {
+      throw badRequest('Invalid email or password');
+    }
+
+    return createAuthenticatedSession(
+      deps,
+      req,
+      {
+        subjectType: 'admin',
+        subject: admin,
+      },
+      {
+        ...context,
+        authMethod: 'password_login',
+      },
+    );
   }
 
   const user = await store.findUserByEmail(email);

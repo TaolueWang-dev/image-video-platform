@@ -75,6 +75,14 @@ function parseBoolean(name, fallback = false) {
   return ['1', 'true', 'yes', 'on'].includes(raw.toLowerCase());
 }
 
+function parseEnum(name, allowedValues, fallback) {
+  const raw = readEnv(name, fallback).toLowerCase();
+  if (!allowedValues.includes(raw)) {
+    throw new AppError(500, `Invalid env ${name}: expected one of ${allowedValues.join(', ')}`);
+  }
+  return raw;
+}
+
 function parsePositiveInteger(name, fallback) {
   const value = parseInteger(name, fallback);
   if (value <= 0) {
@@ -199,7 +207,7 @@ export function loadConfig() {
       : [openAiDefaultModel || 'gpt-image-2'],
   );
 
-  return {
+  const config = {
     env: readEnv('NODE_ENV', 'development'),
     host: readEnv('HOST', '0.0.0.0'),
     port: parseInteger('PORT', 3000),
@@ -228,8 +236,9 @@ export function loadConfig() {
       emailRequestLimitPerIp: parsePositiveInteger('AUTH_EMAIL_REQUEST_LIMIT_PER_IP', 10),
       registrationEnabled: parseBoolean('AUTH_REGISTRATION_ENABLED', true),
       passwordMinLength: parsePositiveInteger('AUTH_PASSWORD_MIN_LENGTH', 8),
-      emailDeliveryMode: readEnv(
+      emailDeliveryMode: parseEnum(
         'AUTH_EMAIL_DELIVERY_MODE',
+        ['disabled', 'log', 'smtp'],
         readEnv('NODE_ENV', 'development') === 'production' ? 'disabled' : 'log',
       ),
       exposeDevCode: parseBoolean(
@@ -239,6 +248,20 @@ export function loadConfig() {
       superAdmin: {
         email: readEnv('SUPER_ADMIN_EMAIL').toLowerCase(),
         role: readEnv('SUPER_ADMIN_ROLE', 'super_admin'),
+        password: readEnv('SUPER_ADMIN_PASSWORD'),
+      },
+      smtp: {
+        host: readEnv('AUTH_EMAIL_SMTP_HOST'),
+        port: parseInteger(
+          'AUTH_EMAIL_SMTP_PORT',
+          parseBoolean('AUTH_EMAIL_SMTP_SECURE', false) ? 465 : 587,
+        ),
+        secure: parseBoolean('AUTH_EMAIL_SMTP_SECURE', false),
+        username: readEnv('AUTH_EMAIL_SMTP_USERNAME'),
+        password: readEnv('AUTH_EMAIL_SMTP_PASSWORD'),
+        fromEmail: readEnv('AUTH_EMAIL_SMTP_FROM_EMAIL'),
+        fromName: readEnv('AUTH_EMAIL_SMTP_FROM_NAME', 'Astral Forge'),
+        replyTo: readEnv('AUTH_EMAIL_SMTP_REPLY_TO'),
       },
     },
     openai: {
@@ -320,4 +343,13 @@ export function loadConfig() {
       },
     },
   };
+
+  if (config.auth.emailDeliveryMode === 'smtp') {
+    requiredIfConfigured('AUTH_EMAIL_DELIVERY_MODE=smtp', 'AUTH_EMAIL_SMTP_HOST', 'smtp', config.auth.smtp.host);
+    requiredIfConfigured('AUTH_EMAIL_DELIVERY_MODE=smtp', 'AUTH_EMAIL_SMTP_FROM_EMAIL', 'smtp', config.auth.smtp.fromEmail);
+    requiredIfConfigured('AUTH_EMAIL_SMTP_USERNAME', 'AUTH_EMAIL_SMTP_PASSWORD', config.auth.smtp.username, config.auth.smtp.password);
+    requiredIfConfigured('AUTH_EMAIL_SMTP_PASSWORD', 'AUTH_EMAIL_SMTP_USERNAME', config.auth.smtp.password, config.auth.smtp.username);
+  }
+
+  return config;
 }

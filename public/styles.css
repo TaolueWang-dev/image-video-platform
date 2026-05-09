@@ -2480,6 +2480,7 @@ body[data-page="profile"] .list-panel,
 body[data-page="admin"] .summary-item,
 body[data-page="admin"] .list-item,
 body[data-page="admin"] .list-panel {
+  border: 1px solid rgba(191, 219, 254, 0.5);
   border-color: rgba(191, 219, 254, 0.5);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(239, 246, 255, 0.94));
   box-shadow: 0 18px 40px -28px rgba(37, 99, 235, 0.16);
@@ -2503,6 +2504,54 @@ body[data-page="profile"] .list-item-meta,
 body[data-page="admin"] .summary-item span,
 body[data-page="admin"] .list-item-meta {
   color: #64748b;
+}
+
+body[data-page="home"] #account-summary.summary-list .summary-item {
+  border: 1px solid rgba(191, 219, 254, 0.52);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(239, 246, 255, 0.94));
+  box-shadow: 0 18px 40px -28px rgba(37, 99, 235, 0.16);
+  border-radius: 24px;
+  padding: 24px 26px;
+}
+
+body[data-page="home"] #account-summary.summary-list .summary-item span {
+  color: #64748b;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+body[data-page="home"] #account-summary.summary-list .summary-item strong {
+  color: #0f172a;
+  font-size: 1.05rem;
+  line-height: 1.45;
+  font-weight: 700;
+}
+
+.workspace-stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 24px 26px;
+  border-radius: 24px;
+  border: 1px solid rgba(191, 219, 254, 0.52);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(239, 246, 255, 0.94));
+  box-shadow: 0 18px 40px -28px rgba(37, 99, 235, 0.16);
+}
+
+.workspace-stat-card span {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.workspace-stat-card strong {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.05rem;
+  line-height: 1.45;
+  font-weight: 700;
+  word-break: break-word;
 }
 
 @media (max-width: 1100px) {

@@ -1,5 +1,6 @@
 import { badRequest, notFound } from '../errors.js';
 import { requestJson } from '../http-client.js';
+import { applyUsageCharge, calculateVideoCharge, ensureSufficientBalance } from './billing.js';
 import { nowIso, randomId, requireObject, requireString } from '../utils.js';
 
 const VIDEO_ATTACHMENT_ROLE_SET = new Set(['first_frame', 'last_frame', 'reference_image']);
@@ -135,6 +136,27 @@ function buildVideoRecord(payload, upstreamPayload, remoteData, currentTask) {
     output_url: outputUrl,
     resultUrl,
     result_url: resultUrl,
+    estimatedCharge:
+      payload?.estimatedCharge ??
+      currentTask?.estimatedCharge ??
+      remoteData?.estimatedCharge ??
+      0,
+    chargedAmount:
+      payload?.chargedAmount ??
+      currentTask?.chargedAmount ??
+      remoteData?.chargedAmount ??
+      0,
+    currency: payload?.currency || currentTask?.currency || 'CNY',
+    billingStatus:
+      payload?.billingStatus ||
+      currentTask?.billingStatus ||
+      remoteData?.billingStatus ||
+      'pending',
+    billingEventId:
+      payload?.billingEventId ||
+      currentTask?.billingEventId ||
+      remoteData?.billingEventId ||
+      '',
     error,
     message,
     request: requestPayload || null,
@@ -319,6 +341,10 @@ export async function createVideoTask({ config, store, logger, context }, payloa
     : '';
 
   const upstreamPayload = normalizeVideoPayload(config, payload, callbackUrl);
+  const pricing = calculateVideoCharge(upstreamPayload, config.seedDance.defaultDuration);
+  await ensureSufficientBalance(store, context.userId, pricing.amount, {
+    operation: 'video_generation',
+  });
   logger?.info('seeddance.create_task.model_selected', {
     requestId: context?.requestId,
     payloadModel: payload?.model || '',
@@ -351,6 +377,10 @@ export async function createVideoTask({ config, store, logger, context }, payloa
   const record = buildVideoRecord({
     ...payload,
     userId: context.userId,
+    estimatedCharge: pricing.amount,
+    chargedAmount: 0,
+    billingStatus: 'pending',
+    currency: pricing.currency,
   }, upstreamPayload, {
     ...result.data,
     id: taskId,
@@ -359,6 +389,51 @@ export async function createVideoTask({ config, store, logger, context }, payloa
   await store.upsertVideoTask(record);
 
   return record;
+}
+
+async function maybeChargeSuccessfulVideoTask(store, task) {
+  const normalizedStatus = String(task.status || '').toLowerCase();
+  if (!['succeeded', 'success', 'completed'].includes(normalizedStatus)) {
+    return task;
+  }
+  if (task.billingStatus === 'charged' || task.billingStatus === 'failed') {
+    return task;
+  }
+
+  try {
+    const chargeResult = await applyUsageCharge(store, {
+      userId: task.userId,
+      amount: task.estimatedCharge || 0,
+      type: 'video_charge',
+      sourceType: 'video_task',
+      sourceId: task.id || task.taskId || '',
+      idempotencyKey: `video_charge:${task.id || task.taskId || ''}`,
+      metadata: {
+        model: task.model || '',
+        durationSeconds: task.duration || 0,
+      },
+    });
+
+    return {
+      ...task,
+      chargedAmount: task.estimatedCharge || 0,
+      billingStatus: 'charged',
+      billingEventId: chargeResult.billingEvent?.id || '',
+      currency: task.currency || 'CNY',
+    };
+  } catch (error) {
+    if (error?.details?.code !== 'balance_conflict') {
+      throw error;
+    }
+    return {
+      ...task,
+      status: 'billing_failed',
+      chargedAmount: 0,
+      billingStatus: 'failed',
+      error: 'Billing failed after task success',
+      message: '余额在任务完成前发生变化，未能完成扣费。',
+    };
+  }
 }
 
 export async function getVideoTask({ config, store, logger, context }, taskId) {
@@ -389,8 +464,9 @@ export async function getVideoTask({ config, store, logger, context }, taskId) {
     ...result.data,
     id: taskId,
   }, localTask);
-  await store.upsertVideoTask(next);
-  return next;
+  const billedTask = await maybeChargeSuccessfulVideoTask(store, next);
+  await store.upsertVideoTask(billedTask);
+  return billedTask;
 }
 
 export async function applyVideoCallback(store, payload) {
@@ -402,6 +478,7 @@ export async function applyVideoCallback(store, payload) {
   }
 
   const next = buildVideoRecord(existing, existing.request, payload, existing);
-  await store.upsertVideoTask(next);
-  return next;
+  const billedTask = await maybeChargeSuccessfulVideoTask(store, next);
+  await store.upsertVideoTask(billedTask);
+  return billedTask;
 }

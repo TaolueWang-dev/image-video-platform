@@ -14,6 +14,7 @@ import {
   registerWithPassword,
   requestEmailLoginCode,
   requireUserSession,
+  verifyRegistrationCode,
   verifyEmailLoginCode,
 } from './services/auth.js';
 import { requireAdminSession } from './services/auth.js';
@@ -97,6 +98,11 @@ function serializeImageHistoryEntry(item) {
       item?.reference_downgrade_reason || item?.referenceDowngradeReason || '',
     referenceImageDowngradeReason:
       item?.referenceDowngradeReason || item?.reference_downgrade_reason || '',
+    estimatedCharge: item?.estimatedCharge ?? 0,
+    chargedAmount: item?.chargedAmount ?? 0,
+    currency: item?.currency || 'CNY',
+    billingStatus: item?.billingStatus || '',
+    billingEventId: item?.billingEventId || '',
   };
 }
 
@@ -151,8 +157,32 @@ function serializeVideoTask(item) {
     output_url: outputUrl,
     resultUrl,
     result_url: resultUrl,
+    estimatedCharge: item?.estimatedCharge ?? 0,
+    chargedAmount: item?.chargedAmount ?? 0,
+    currency: item?.currency || 'CNY',
+    billingStatus: item?.billingStatus || '',
+    billingEventId: item?.billingEventId || '',
     error: item?.error || remote?.error || '',
     message: item?.message || remote?.message || '',
+  };
+}
+
+function serializeBillingEvent(item) {
+  return {
+    ...item,
+    id: item?.id || '',
+    userId: item?.userId || '',
+    type: item?.type || '',
+    amountDelta: item?.amountDelta ?? 0,
+    beforeBalance: item?.beforeBalance ?? 0,
+    afterBalance: item?.afterBalance ?? 0,
+    currency: item?.currency || 'CNY',
+    sourceType: item?.sourceType || '',
+    sourceId: item?.sourceId || '',
+    idempotencyKey: item?.idempotencyKey || '',
+    metadata: item?.metadata || {},
+    createdAt: item?.createdAt || '',
+    updatedAt: item?.updatedAt || item?.createdAt || '',
   };
 }
 
@@ -283,6 +313,11 @@ function serializeImageGenerationResponse(result) {
         result?.referenceDowngradeReason ||
         result?.reference_downgrade_reason ||
         '',
+      estimatedCharge: result?.estimatedCharge ?? 0,
+      chargedAmount: result?.chargedAmount ?? 0,
+      currency: result?.currency || 'CNY',
+      billingStatus: result?.billingStatus || '',
+      billingEventId: result?.billingEventId || '',
     },
     {
       items: data,
@@ -491,6 +526,11 @@ export async function handleApiRequest(deps, req, url, context) {
     return json(result, 201);
   }
 
+  if (req.method === 'POST' && pathname === '/api/auth/register/verify') {
+    const payload = await readJsonBody(req, config.bodyLimitBytes);
+    return json(await verifyRegistrationCode(deps, payload, context), 200);
+  }
+
   if (req.method === 'POST' && pathname === '/api/auth/password/login') {
     const payload = await readJsonBody(req, config.bodyLimitBytes);
     const result = await loginWithPassword(deps, req, payload, context);
@@ -609,6 +649,12 @@ export async function handleApiRequest(deps, req, url, context) {
     return json(
       serializeCollectionResponse(await listOrders(store, url.searchParams, user.id), serializeRechargeOrder),
     );
+  }
+
+  if (req.method === 'GET' && pathname === '/api/billing/events') {
+    const { user } = await requireUserSession(deps, req);
+    const items = sortByUpdatedAtDesc(await store.listBillingEventsByUserId(user.id));
+    return json(serializeCollectionResponse(paginate(items, url.searchParams), serializeBillingEvent));
   }
 
   if (req.method === 'POST' && pathname === '/api/recharge/orders') {

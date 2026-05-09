@@ -1,6 +1,15 @@
 import path from 'node:path';
 
-import { ensureDir, nowIso, readJsonFile, resolveProjectPath, writeJsonFile } from './utils.js';
+import {
+  ensureDir,
+  hashPassword,
+  nowIso,
+  randomId,
+  readJsonFile,
+  resolveProjectPath,
+  verifyPassword,
+  writeJsonFile,
+} from './utils.js';
 
 function createDefaultAccount(config) {
   return {
@@ -23,6 +32,104 @@ function createUserAccount(config, userId) {
   };
 }
 
+function createBillingEvent({
+  userId,
+  type,
+  amountDelta,
+  beforeBalance,
+  afterBalance,
+  currency,
+  sourceType,
+  sourceId,
+  idempotencyKey,
+  metadata,
+  createdAt,
+}) {
+  return {
+    id: randomId('bill'),
+    userId,
+    type,
+    amountDelta,
+    beforeBalance,
+    afterBalance,
+    currency,
+    sourceType: sourceType || '',
+    sourceId: sourceId || '',
+    idempotencyKey: idempotencyKey || '',
+    metadata: metadata && typeof metadata === 'object' ? metadata : {},
+    createdAt,
+    updatedAt: createdAt,
+  };
+}
+
+function applyAccountDeltaToState(config, accounts, billingEvents, input) {
+  const createdAt = input.createdAt || nowIso();
+  const currency = input.currency || config.defaults.currency;
+  const idempotencyKey = input.idempotencyKey || '';
+  const existingEvent = idempotencyKey
+    ? billingEvents.find((item) => item.idempotencyKey === idempotencyKey)
+    : null;
+
+  if (existingEvent) {
+    const existingAccount =
+      accounts.find((item) => item.userId === input.userId) || createUserAccount(config, input.userId);
+    return {
+      duplicate: true,
+      insufficient: false,
+      account: existingAccount,
+      billingEvent: existingEvent,
+    };
+  }
+
+  const accountIndex = accounts.findIndex((item) => item.userId === input.userId);
+  const currentAccount =
+    accountIndex >= 0 ? accounts[accountIndex] : createUserAccount(config, input.userId);
+  const nextBalance = currentAccount.balance + input.amountDelta;
+
+  if (!input.allowNegative && nextBalance < 0) {
+    return {
+      duplicate: false,
+      insufficient: true,
+      account: currentAccount,
+      billingEvent: null,
+    };
+  }
+
+  const nextAccount = {
+    ...currentAccount,
+    balance: nextBalance,
+    currency,
+    updatedAt: createdAt,
+  };
+  if (accountIndex >= 0) {
+    accounts[accountIndex] = nextAccount;
+  } else {
+    accounts.push(nextAccount);
+  }
+
+  const billingEvent = createBillingEvent({
+    userId: input.userId,
+    type: input.type,
+    amountDelta: input.amountDelta,
+    beforeBalance: currentAccount.balance,
+    afterBalance: nextBalance,
+    currency,
+    sourceType: input.sourceType,
+    sourceId: input.sourceId,
+    idempotencyKey,
+    metadata: input.metadata,
+    createdAt,
+  });
+  billingEvents.push(billingEvent);
+
+  return {
+    duplicate: false,
+    insufficient: false,
+    account: nextAccount,
+    billingEvent,
+  };
+}
+
 export class DataStore {
   constructor(config) {
     this.config = config;
@@ -33,6 +140,7 @@ export class DataStore {
     this.imageHistoryFile = path.join(this.dataDir, 'image-history.json');
     this.videoTasksFile = path.join(this.dataDir, 'video-tasks.json');
     this.paymentEventsFile = path.join(this.dataDir, 'payment-events.json');
+    this.billingEventsFile = path.join(this.dataDir, 'billing-events.json');
     this.usersFile = path.join(this.dataDir, 'users.json');
     this.adminUsersFile = path.join(this.dataDir, 'admin-users.json');
     this.sessionsFile = path.join(this.dataDir, 'sessions.json');
@@ -50,6 +158,7 @@ export class DataStore {
       readJsonFile(this.imageHistoryFile, []),
       readJsonFile(this.videoTasksFile, []),
       readJsonFile(this.paymentEventsFile, []),
+      readJsonFile(this.billingEventsFile, []),
       readJsonFile(this.usersFile, []),
       readJsonFile(this.adminUsersFile, []),
       readJsonFile(this.sessionsFile, []),
@@ -68,17 +177,35 @@ export class DataStore {
     return this.withWriteLock(async () => {
       const admins = await this.listAdminUsers();
       const existing = admins.find((item) => item.email === email) || null;
+      const shouldUpdatePassword = Boolean(
+        this.config.auth.superAdmin.password
+        && !verifyPassword(this.config.auth.superAdmin.password, existing?.passwordHash || ''),
+      );
+      const passwordHash = shouldUpdatePassword
+        ? hashPassword(this.config.auth.superAdmin.password)
+        : existing?.passwordHash || '';
       if (existing) {
-        if (existing.role === this.config.auth.superAdmin.role && existing.status === 'active') {
+        if (
+          existing.role === this.config.auth.superAdmin.role
+          && existing.status === 'active'
+          && !shouldUpdatePassword
+        ) {
           return existing;
         }
         const updated = {
           ...existing,
           role: this.config.auth.superAdmin.role,
           status: 'active',
+          passwordHash,
           updatedAt: nowIso(),
         };
-        await this.replaceAdminUser(updated);
+        const index = admins.findIndex((item) => item.id === updated.id);
+        if (index >= 0) {
+          admins[index] = updated;
+        } else {
+          admins.push(updated);
+        }
+        await this.saveAdminUsers(admins);
         return updated;
       }
 
@@ -88,6 +215,7 @@ export class DataStore {
         email,
         role: this.config.auth.superAdmin.role,
         status: 'active',
+        passwordHash,
         createdAt: timestamp,
         updatedAt: timestamp,
       };
@@ -345,6 +473,56 @@ export class DataStore {
     return events;
   }
 
+  async listBillingEvents() {
+    return readJsonFile(this.billingEventsFile, []);
+  }
+
+  async saveBillingEvents(events) {
+    await writeJsonFile(this.billingEventsFile, events);
+    return events;
+  }
+
+  async listBillingEventsByUserId(userId) {
+    const events = await this.listBillingEvents();
+    return events.filter((item) => item.userId === userId);
+  }
+
+  async applyBillingAdjustment({
+    userId,
+    type,
+    amountDelta,
+    sourceType = '',
+    sourceId = '',
+    idempotencyKey = '',
+    metadata = {},
+    allowNegative = false,
+    createdAt = nowIso(),
+    currency = this.config.defaults.currency,
+  }) {
+    return this.withWriteLock(async () => {
+      const [accounts, billingEvents] = await Promise.all([this.listAccounts(), this.listBillingEvents()]);
+      const result = applyAccountDeltaToState(this.config, accounts, billingEvents, {
+        userId,
+        type,
+        amountDelta,
+        sourceType,
+        sourceId,
+        idempotencyKey,
+        metadata,
+        allowNegative,
+        createdAt,
+        currency,
+      });
+
+      if (!result.duplicate && !result.insufficient) {
+        await this.saveAccounts(accounts);
+        await this.saveBillingEvents(billingEvents);
+      }
+
+      return result;
+    });
+  }
+
   async listUsers() {
     return readJsonFile(this.usersFile, []);
   }
@@ -568,10 +746,11 @@ export class DataStore {
 
   async completeOrderPayment({ orderId, eventKey, provider, providerTradeNo, notifyPayload, paidAt }) {
     return this.withWriteLock(async () => {
-      const [orders, accounts, paymentEvents] = await Promise.all([
+      const [orders, accounts, paymentEvents, billingEvents] = await Promise.all([
         this.listOrders(),
         this.listAccounts(),
         this.listPaymentEvents(),
+        this.listBillingEvents(),
       ]);
 
       const existingEvent = paymentEvents.find((item) => item.eventKey === eventKey);
@@ -623,31 +802,39 @@ export class DataStore {
       };
       paymentEvents.push(paymentEvent);
 
+      let billingEvent = null;
       if (currentOrder.status !== 'paid' && currentOrder.userId) {
-        const accountIndex = accounts.findIndex((item) => item.userId === currentOrder.userId);
-        const currentAccount =
-          accountIndex >= 0 ? accounts[accountIndex] : createUserAccount(this.config, currentOrder.userId);
-        const nextAccount = {
-          ...currentAccount,
-          balance: currentAccount.balance + nextOrder.amount,
-          updatedAt: paidAt,
-        };
-        if (accountIndex >= 0) {
-          accounts[accountIndex] = nextAccount;
-        } else {
-          accounts.push(nextAccount);
-        }
+        const billingResult = applyAccountDeltaToState(this.config, accounts, billingEvents, {
+          userId: currentOrder.userId,
+          type: 'recharge',
+          amountDelta: nextOrder.amount,
+          sourceType: 'order',
+          sourceId: nextOrder.id,
+          idempotencyKey: `recharge:${nextOrder.id}:${eventKey}`,
+          metadata: {
+            orderId: nextOrder.id,
+            outTradeNo: nextOrder.outTradeNo || '',
+            provider,
+            providerTradeNo: providerTradeNo || '',
+          },
+          allowNegative: true,
+          createdAt: paidAt,
+          currency: nextOrder.currency || this.config.defaults.currency,
+        });
+        billingEvent = billingResult.billingEvent;
       }
 
       await this.saveOrders(orders);
       await this.saveAccounts(accounts);
       await this.savePaymentEvents(paymentEvents);
+      await this.saveBillingEvents(billingEvents);
 
       return {
         order: nextOrder,
         duplicate: false,
         applied: currentOrder.status !== 'paid',
         paymentEvent,
+        billingEvent,
       };
     });
   }

@@ -158,11 +158,25 @@ export async function createBalanceAdjustment(deps, actor, userId, payload) {
   const reason = requireString(payload?.reason, 'reason');
   const timestamp = nowIso();
 
-  const account = await deps.store.updateAccountByUserId(userId, (current) => ({
-    ...current,
-    balance: current.balance + amountDelta,
-    updatedAt: timestamp,
-  }));
+  const billingResult = await deps.store.applyBillingAdjustment({
+    userId,
+    type: 'admin_adjustment',
+    amountDelta,
+    sourceType: 'admin',
+    sourceId: actor.id,
+    idempotencyKey: `admin_adjustment:${actor.id}:${userId}:${timestamp}:${amountDelta}`,
+    metadata: {
+      userId,
+      email: user.email,
+      reason,
+    },
+    allowNegative: false,
+    createdAt: timestamp,
+  });
+  if (billingResult.insufficient) {
+    throw badRequest('Balance adjustment would make the account negative');
+  }
+  const account = billingResult.account;
 
   await deps.store.appendAuditEvent({
     type: 'admin.user_balance_adjusted',

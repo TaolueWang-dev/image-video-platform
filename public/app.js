@@ -2,6 +2,8 @@ const CACHE_KEY = "astral-forge-console-cache";
 const MAX_RECENT_ITEMS = 6;
 const MAX_THREAD_ITEMS = 18;
 const MAX_SESSION_ITEMS = 100;
+const IMAGE_PRICE_PER_OUTPUT_CENTS = 15;
+const VIDEO_PRICE_PER_SECOND_CENTS = 150;
 const PROTECTED_PAGES = new Set(["home", "image", "video", "recharge", "profile", "admin"]);
 const ADMIN_ONLY_PAGES = new Set(["admin"]);
 
@@ -20,6 +22,7 @@ const state = {
     role: "",
   },
   loginMode: "password",
+  registerCodeSent: false,
   videoPollTimer: null,
   currentTaskId: null,
   recentOrders: [],
@@ -108,6 +111,7 @@ const elements = {
   workspaceSidebarTitle: document.getElementById("workspace-sidebar-title"),
   workspaceSidebarSubtitle: document.getElementById("workspace-sidebar-subtitle"),
   workspaceSidebarLinks: document.getElementById("workspace-sidebar-links"),
+  adminNavLinks: Array.from(document.querySelectorAll('[data-nav="admin"]')),
 };
 
 boot().catch((error) => {
@@ -293,7 +297,7 @@ function bindEvents() {
     touchCurrentConversation("image", prompt);
 
     setLoading(form, true);
-    setMessage(elements.imageMessage, "正在生成图像...");
+    setMessage(elements.imageMessage, `预计扣费 ${formatAmount(getImageEstimateCents(payload))}，正在生成图像...`);
     if (elements.imageStatus) {
       elements.imageStatus.textContent = "生成中";
     }
@@ -397,7 +401,7 @@ function bindEvents() {
     touchCurrentConversation("video", prompt);
 
     setLoading(form, true);
-    setMessage(elements.videoMessage, "正在创建视频任务...");
+    setMessage(elements.videoMessage, `预计扣费 ${formatAmount(getVideoEstimateCents(videoRequest))}，正在创建视频任务...`);
     if (elements.videoStatus) {
       elements.videoStatus.textContent = "提交中";
     }
@@ -1145,6 +1149,12 @@ async function requestJson(url, options = {}) {
       data.error ||
       `请求失败：${response.status} ${response.statusText}`;
     const details = data?.error?.details;
+    if (details?.code === "insufficient_balance") {
+      throw new Error(`余额不足，请前往 /recharge 充值。当前余额 ${formatAmount(details.balance, details.currency)}，需要 ${formatAmount(details.requiredAmount, details.currency)}。`);
+    }
+    if (details?.code === "balance_conflict") {
+      throw new Error(`扣费失败：账户余额在处理过程中发生变化，请前往 /recharge 充值后重试。当前余额 ${formatAmount(details.balance, details.currency)}。`);
+    }
     if (details && typeof details === "object") {
       const detailParts = [];
       if (details.status) {
@@ -1326,6 +1336,7 @@ function renderWorkspaceShell() {
   existingMobile?.remove();
 
   if (!state.auth.authenticated || page === "login") {
+    syncAdminEntryVisibility();
     renderWorkspaceSidebarGuest();
     return;
   }
@@ -1342,6 +1353,7 @@ function renderWorkspaceShell() {
     profileHref,
     adminHref,
   });
+  syncAdminEntryVisibility();
 
   document.body.insertAdjacentHTML(
     "beforeend",
@@ -1373,7 +1385,7 @@ function renderWorkspaceSidebarGuest() {
     elements.workspaceSidebarTitle.textContent = "未登录";
   }
   if (elements.workspaceSidebarSubtitle) {
-    elements.workspaceSidebarSubtitle.textContent = "登录后可查看工作台与后台入口";
+    elements.workspaceSidebarSubtitle.textContent = "登录后可查看工作台";
   }
   if (elements.workspaceSidebarLinks) {
     elements.workspaceSidebarLinks.innerHTML = `
@@ -1381,6 +1393,13 @@ function renderWorkspaceSidebarGuest() {
       <a class="rounded-full border border-sky-100 bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-700 transition hover:bg-sky-100" href="/login">注册</a>
     `;
   }
+}
+
+function syncAdminEntryVisibility() {
+  const visible = isAdminSession();
+  elements.adminNavLinks?.forEach((link) => {
+    link.classList.toggle("hidden", !visible);
+  });
 }
 
 function renderWorkspaceSidebarAuthenticated({ title, subtitle, profileHref, adminHref }) {
@@ -1403,6 +1422,7 @@ function renderWorkspaceSidebarAuthenticated({ title, subtitle, profileHref, adm
 }
 
 function initializeLoginPage() {
+  state.registerCodeSent = false;
   setLoginMode(state.loginMode || "password");
   const redirectTo = getRedirectTargetFromLocation();
   if (elements.loginMessage && redirectTo) {
@@ -1411,7 +1431,7 @@ function initializeLoginPage() {
 }
 
 function setLoginMode(mode) {
-  const nextMode = mode === "register" || mode === "code" ? mode : "password";
+  const nextMode = mode === "register" ? "register" : "password";
   state.loginMode = nextMode;
 
   document.querySelectorAll("[data-auth-mode]").forEach((button) => {
@@ -1426,76 +1446,48 @@ function setLoginMode(mode) {
     elements.loginHint.textContent = "";
   }
 
-  const isCodeMode = nextMode === "code";
   const isRegisterMode = nextMode === "register";
+  const showSubjectPanel = !isRegisterMode;
 
-  elements.loginPasswordPanel?.classList.toggle("hidden", isCodeMode);
-  elements.loginSubjectPanel?.classList.toggle("hidden", !isCodeMode);
-  elements.loginCodeStep?.classList.toggle("hidden", !isCodeMode);
-  elements.loginRequestCode?.classList.toggle("hidden", !isCodeMode);
-  elements.loginRequestCode?.classList.toggle("inline-flex", isCodeMode);
+  elements.loginPasswordPanel?.classList.remove("hidden");
+  elements.loginSubjectPanel?.classList.toggle("hidden", !showSubjectPanel);
+  elements.loginCodeStep?.classList.toggle("hidden", !isRegisterMode);
+  elements.loginRequestCode?.classList.toggle("hidden", !isRegisterMode);
+  elements.loginRequestCode?.classList.toggle("inline-flex", isRegisterMode);
 
   if (elements.loginSubjectType) {
-    elements.loginSubjectType.value = isCodeMode ? elements.loginSubjectType.value || "user" : "user";
+    if (isRegisterMode) {
+      elements.loginSubjectType.value = "user";
+    } else {
+      elements.loginSubjectType.value = elements.loginSubjectType.value || "user";
+    }
   }
 
   if (elements.loginModeBadge) {
-    elements.loginModeBadge.textContent =
-      nextMode === "register" ? "注册账号" : nextMode === "code" ? "验证码登录" : "密码登录";
+    elements.loginModeBadge.textContent = nextMode === "register" ? "注册账号" : "密码登录";
   }
 
   if (elements.loginSubmit) {
-    elements.loginSubmit.textContent =
-      nextMode === "register" ? "注册并登录" : nextMode === "code" ? "验证并登录" : "登录";
+    elements.loginSubmit.textContent = nextMode === "register" ? "完成注册" : "登录";
   }
 
   if (elements.loginModeHelp) {
     elements.loginModeHelp.textContent =
       nextMode === "register"
-        ? "创建普通用户账号并设置密码，注册后需要先完成邮箱验证码认证。"
-        : nextMode === "code"
-          ? "普通用户和管理员都可走邮箱验证码；普通用户可用于免密码登录。"
-          : "使用邮箱和密码直接登录普通用户工作台。";
+        ? "填写邮箱和密码，先发送注册验证码，再输入验证码完成账号激活。"
+        : "选择普通用户或管理员身份后，使用邮箱和密码直接登录。";
   }
 
   if (elements.loginMessage) {
     elements.loginMessage.textContent =
       nextMode === "register"
-        ? "请输入邮箱并设置密码，注册后会发送激活验证码。"
-        : nextMode === "code"
-          ? "输入邮箱后先获取验证码。"
-          : "请输入邮箱和密码。";
+        ? "请输入邮箱、密码和验证码；先点击发送验证码。"
+        : "请输入邮箱、身份和密码。";
   }
 }
 
 async function handleLoginCodeRequest() {
-  const email = String(elements.loginEmail?.value || "").trim();
-  const subjectType = String(elements.loginSubjectType?.value || "user").trim();
-  if (!email) {
-    setMessage(elements.loginMessage, "请输入邮箱地址。", true);
-    return;
-  }
-
-  setMessage(elements.loginMessage, "正在发送验证码...");
-  elements.loginHint && (elements.loginHint.textContent = "");
-  elements.loginRequestCode && (elements.loginRequestCode.disabled = true);
-
-  try {
-    const data = await requestJson("/api/auth/email/request-code", {
-      method: "POST",
-      body: JSON.stringify({ email, subjectType }),
-    });
-    elements.loginCodeStep?.classList.remove("hidden");
-    setMessage(elements.loginMessage, "验证码已发送，请输入验证码继续登录。");
-    if (elements.loginHint && data?.delivery?.devCode) {
-      elements.loginHint.textContent = `开发验证码：${data.delivery.devCode}`;
-    }
-    elements.loginCode?.focus();
-  } catch (error) {
-    setMessage(elements.loginMessage, error.message, true);
-  } finally {
-    elements.loginRequestCode && (elements.loginRequestCode.disabled = false);
-  }
+  await handleRegisterCodeRequest();
 }
 
 async function handleLoginSubmit(event) {
@@ -1504,16 +1496,13 @@ async function handleLoginSubmit(event) {
     await handleRegisterSubmit(event);
     return;
   }
-  if (state.loginMode === "password") {
-    await handlePasswordLoginSubmit(event);
-    return;
-  }
-  await handleLoginVerify(event);
+  await handlePasswordLoginSubmit(event);
 }
 
 async function handlePasswordLoginSubmit(event) {
   const email = String(elements.loginEmail?.value || "").trim();
   const password = String(elements.loginPassword?.value || "");
+  const subjectType = String(elements.loginSubjectType?.value || "user").trim();
 
   if (!email || !password) {
     setMessage(elements.loginMessage, "请输入邮箱和密码。", true);
@@ -1526,7 +1515,7 @@ async function handlePasswordLoginSubmit(event) {
   try {
     const data = await requestJson("/api/auth/password/login", {
       method: "POST",
-      body: JSON.stringify({ email, password, subjectType: "user" }),
+      body: JSON.stringify({ email, password, subjectType }),
     });
     applyAuthState(data);
     redirectAfterLogin();
@@ -1539,44 +1528,6 @@ async function handlePasswordLoginSubmit(event) {
 
 async function handleRegisterSubmit(event) {
   const email = String(elements.loginEmail?.value || "").trim();
-  const password = String(elements.loginPassword?.value || "");
-
-  if (!email || !password) {
-    setMessage(elements.loginMessage, "请输入邮箱和密码。", true);
-    return;
-  }
-
-  setLoading(event.currentTarget, true);
-  setMessage(elements.loginMessage, "正在创建账号...");
-
-  try {
-    const data = await requestJson("/api/auth/register", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
-    setLoginMode("code");
-    if (elements.loginEmail) {
-      elements.loginEmail.value = email;
-    }
-    if (elements.loginSubjectType) {
-      elements.loginSubjectType.value = "user";
-    }
-    elements.loginCodeStep?.classList.remove("hidden");
-    setMessage(elements.loginMessage, "账号已创建，请输入邮箱验证码完成激活。");
-    if (elements.loginHint && data?.delivery?.devCode) {
-      elements.loginHint.textContent = `开发验证码：${data.delivery.devCode}`;
-    }
-    elements.loginCode?.focus();
-  } catch (error) {
-    setMessage(elements.loginMessage, error.message, true);
-  } finally {
-    setLoading(event.currentTarget, false);
-  }
-}
-
-async function handleLoginVerify(event) {
-  const email = String(elements.loginEmail?.value || "").trim();
-  const subjectType = String(elements.loginSubjectType?.value || "user").trim();
   const code = String(elements.loginCode?.value || "").trim();
 
   if (!email || !code) {
@@ -1584,20 +1535,72 @@ async function handleLoginVerify(event) {
     return;
   }
 
+  if (!state.registerCodeSent) {
+    setMessage(elements.loginMessage, "请先发送注册验证码。", true);
+    return;
+  }
+
   setLoading(event.currentTarget, true);
-  setMessage(elements.loginMessage, "正在校验验证码...");
+  setMessage(elements.loginMessage, "正在完成注册...");
 
   try {
-    const data = await requestJson("/api/auth/email/verify-code", {
+    await requestJson("/api/auth/register/verify", {
       method: "POST",
-      body: JSON.stringify({ email, subjectType, code }),
+      body: JSON.stringify({ email, code }),
     });
-    applyAuthState(data);
-    redirectAfterLogin();
+    state.registerCodeSent = false;
+    setLoginMode("password");
+    if (elements.loginEmail) {
+      elements.loginEmail.value = email;
+    }
+    if (elements.loginSubjectType) {
+      elements.loginSubjectType.value = "user";
+    }
+    if (elements.loginPassword) {
+      elements.loginPassword.value = "";
+    }
+    if (elements.loginCode) {
+      elements.loginCode.value = "";
+    }
+    setMessage(elements.loginMessage, "注册完成，请使用密码登录。");
+    if (elements.loginHint) {
+      elements.loginHint.textContent = "";
+    }
   } catch (error) {
     setMessage(elements.loginMessage, error.message, true);
   } finally {
     setLoading(event.currentTarget, false);
+  }
+}
+
+async function handleRegisterCodeRequest() {
+  const email = String(elements.loginEmail?.value || "").trim();
+  const password = String(elements.loginPassword?.value || "");
+
+  if (!email || !password) {
+    setMessage(elements.loginMessage, "请输入邮箱和密码。", true);
+    return;
+  }
+
+  elements.loginRequestCode && (elements.loginRequestCode.disabled = true);
+  setMessage(elements.loginMessage, "正在发送注册验证码...");
+
+  try {
+    const data = await requestJson("/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    state.registerCodeSent = true;
+    elements.loginCodeStep?.classList.remove("hidden");
+    setMessage(elements.loginMessage, "验证码已发送，请输入验证码完成注册。");
+    if (elements.loginHint && data?.delivery?.devCode) {
+      elements.loginHint.textContent = `开发验证码：${data.delivery.devCode}`;
+    }
+    elements.loginCode?.focus();
+  } catch (error) {
+    setMessage(elements.loginMessage, error.message, true);
+  } finally {
+    elements.loginRequestCode && (elements.loginRequestCode.disabled = false);
   }
 }
 
@@ -1649,10 +1652,10 @@ async function loadProfilePage() {
     const roleLabel = isAdminSession() ? `管理员 / ${state.auth.role || "admin"}` : "普通用户";
     const session = state.auth.session || {};
     elements.profileSummary.innerHTML = `
-      <div class="summary-item"><span>登录身份</span><strong>${escapeHtml(roleLabel)}</strong></div>
-      <div class="summary-item"><span>邮箱</span><strong>${escapeHtml(state.auth.email || "--")}</strong></div>
-      <div class="summary-item"><span>会话创建</span><strong>${escapeHtml(formatThreadTime(session.createdAt || ""))}</strong></div>
-      <div class="summary-item"><span>会话到期</span><strong>${escapeHtml(formatThreadTime(session.expiresAt || ""))}</strong></div>
+      <div class="workspace-stat-card"><span>登录身份</span><strong>${escapeHtml(roleLabel)}</strong></div>
+      <div class="workspace-stat-card"><span>邮箱</span><strong>${escapeHtml(state.auth.email || "--")}</strong></div>
+      <div class="workspace-stat-card"><span>会话创建</span><strong>${escapeHtml(formatThreadTime(session.createdAt || ""))}</strong></div>
+      <div class="workspace-stat-card"><span>会话到期</span><strong>${escapeHtml(formatThreadTime(session.expiresAt || ""))}</strong></div>
     `;
   }
 }
@@ -1663,9 +1666,9 @@ async function loadAdminPage() {
   }
 
   elements.adminSummary.innerHTML = `
-    <div class="summary-item"><span>管理员邮箱</span><strong>${escapeHtml(state.auth.email || "--")}</strong></div>
-    <div class="summary-item"><span>角色</span><strong>${escapeHtml(state.auth.role || "admin")}</strong></div>
-    <div class="summary-item"><span>会话类型</span><strong>${escapeHtml(state.auth.subjectType || "--")}</strong></div>
+    <div class="workspace-stat-card"><span>管理员邮箱</span><strong>${escapeHtml(state.auth.email || "--")}</strong></div>
+    <div class="workspace-stat-card"><span>角色</span><strong>${escapeHtml(state.auth.role || "admin")}</strong></div>
+    <div class="workspace-stat-card"><span>会话类型</span><strong>${escapeHtml(state.auth.subjectType || "--")}</strong></div>
   `;
 
   try {
@@ -1774,7 +1777,7 @@ function applyImageFollowUpPayload(payload) {
 }
 
 function buildImageUserMeta(payload) {
-  const parts = [payload.model, payload.size, `x${payload.n}`, payload.quality];
+  const parts = [payload.model, payload.size, `x${payload.n}`, payload.quality, `预计 ${formatAmount(getImageEstimateCents(payload))}`];
   if (payload.style) {
     parts.push(payload.style);
   }
@@ -1782,11 +1785,11 @@ function buildImageUserMeta(payload) {
 }
 
 function buildImageAssistantMeta(payload) {
-  return `模型 ${payload.model} / 尺寸 ${payload.size} / 数量 ${payload.n}`;
+  return `模型 ${payload.model} / 尺寸 ${payload.size} / 数量 ${payload.n} / 预计 ${formatAmount(getImageEstimateCents(payload))}`;
 }
 
 function buildVideoUserMeta(payload) {
-  const parts = [`${payload.duration}s`, payload.resolution, payload.ratio];
+  const parts = [`${payload.duration}s`, payload.resolution, payload.ratio, `预计 ${formatAmount(getVideoEstimateCents(payload))}`];
   if (payload.attachmentSummary) {
     parts.push(payload.attachmentSummary);
   }
@@ -1794,11 +1797,21 @@ function buildVideoUserMeta(payload) {
 }
 
 function buildVideoAssistantMeta(payload) {
-  const parts = [`任务规格 ${payload.duration}s`, payload.resolution, payload.ratio];
+  const parts = [`任务规格 ${payload.duration}s`, payload.resolution, payload.ratio, `预计 ${formatAmount(getVideoEstimateCents(payload))}`];
   if (payload.attachmentSummary) {
     parts.push(payload.attachmentSummary);
   }
   return parts.filter(Boolean).join(" / ");
+}
+
+function getImageEstimateCents(payload) {
+  const count = Number.parseInt(String(payload?.n || 1), 10);
+  return (Number.isFinite(count) && count > 0 ? count : 1) * IMAGE_PRICE_PER_OUTPUT_CENTS;
+}
+
+function getVideoEstimateCents(payload) {
+  const duration = Number.parseInt(String(payload?.duration || 5), 10);
+  return (Number.isFinite(duration) && duration > 0 ? duration : 5) * VIDEO_PRICE_PER_SECOND_CENTS;
 }
 
 function buildVideoRequestPayload({ prompt, duration, resolution, ratio, attachments }) {
@@ -1975,7 +1988,9 @@ function updateImageAssistantEntry(entryId, payload, requestPayload, prompt) {
     images,
     downgradeNotice: extractImageDowngradeNotice(payload),
     usedReferenceImage: referenceApplied,
-    summary: images.length ? `已生成 ${images.length} 张图片` : "接口返回成功，但没有图像内容",
+    summary: images.length
+      ? `已生成 ${images.length} 张图片，已扣费 ${formatAmount(payload?.chargedAmount ?? getImageEstimateCents(requestPayload), payload?.currency || "CNY")}`
+      : "接口返回成功，但没有图像内容",
   }));
 }
 
@@ -2182,6 +2197,7 @@ function renderImageAssistantCard(entry) {
           ${statusBadge}
           ${entry.meta ? `<span class="thread-chip">${escapeHtml(entry.meta)}</span>` : ""}
           ${entry.usedReferenceImage ? '<span class="thread-chip">已附带参考图</span>' : ""}
+          ${typeof entry.rawPayload?.chargedAmount === "number" && entry.rawPayload.chargedAmount > 0 ? `<span class="thread-chip">已扣费 ${escapeHtml(formatAmount(entry.rawPayload.chargedAmount, entry.rawPayload.currency || "CNY"))}</span>` : ""}
         </div>
         ${entry.summary ? `<p class="thread-subtext">${escapeHtml(entry.summary)}</p>` : ""}
         ${downgradeNotice}
@@ -2250,6 +2266,8 @@ function renderVideoAssistantCard(entry) {
           ${renderThreadStatusBadge(entry.status)}
           ${entry.meta ? `<span class="thread-chip">${escapeHtml(entry.meta)}</span>` : ""}
           ${taskId ? `<span class="thread-chip">Task ${escapeHtml(taskId)}</span>` : ""}
+          ${task.estimatedCharge ? `<span class="thread-chip">预计 ${escapeHtml(formatAmount(task.estimatedCharge, task.currency || "CNY"))}</span>` : ""}
+          ${task.billingStatus === "charged" ? `<span class="thread-chip">已扣费 ${escapeHtml(formatAmount(task.chargedAmount, task.currency || "CNY"))}</span>` : ""}
         </div>
         ${attachmentsMarkup}
         ${entry.summary ? `<p class="thread-subtext">${escapeHtml(entry.summary)}</p>` : ""}
@@ -2287,7 +2305,7 @@ function renderThreadStatusBadge(status) {
   let tone = "pending";
   if (["paid", "success", "succeeded", "completed"].includes(normalized)) {
     tone = "success";
-  } else if (["failed", "error", "cancelled", "empty"].includes(normalized)) {
+  } else if (["failed", "error", "cancelled", "empty", "billing_failed"].includes(normalized)) {
     tone = "error";
   }
   return `<span class="status-badge status-badge-${tone}">${escapeHtml(String(status || "--"))}</span>`;
@@ -2456,7 +2474,7 @@ function updateAccount(payload) {
       typeof balance === "number" ? formatCurrencyValue(balance) : String(balance);
   }
   if (elements.accountUnit) {
-    elements.accountUnit.textContent = unit;
+    elements.accountUnit.textContent = formatCurrencyUnit(unit);
   }
   if (elements.accountMeta) {
     elements.accountMeta.textContent = buildAccountMeta(meta, stats);
@@ -2494,8 +2512,8 @@ function renderAccountSummary(account, stats) {
       value: account.nickname || account.userId || account.email || account.name || "默认账户",
     },
     {
-      label: "余额单位",
-      value: account.currency || account.unit || "CNY",
+      label: "结算单位",
+      value: formatCurrencyUnit(account.currency || account.unit || "CNY"),
     },
     {
       label: "累计订单",
@@ -2620,7 +2638,7 @@ function renderStatusBadge(status) {
   let tone = "pending";
   if (["paid", "success", "succeeded", "completed"].includes(normalized)) {
     tone = "success";
-  } else if (["failed", "error", "cancelled"].includes(normalized)) {
+  } else if (["failed", "error", "cancelled", "billing_failed"].includes(normalized)) {
     tone = "error";
   }
   return `<span class="status-badge status-badge-${tone}">${escapeHtml(String(status || "--"))}</span>`;
@@ -2641,9 +2659,16 @@ function formatCurrencyValue(amount) {
   return (amount / 100).toFixed(2);
 }
 
+function formatCurrencyUnit(currency = "CNY") {
+  return String(currency || "").toUpperCase() === "CNY" ? "元" : currency;
+}
+
 function formatAmount(amount, currency = "CNY") {
   if (typeof amount !== "number") {
     return "--";
+  }
+  if (String(currency || "").toUpperCase() === "CNY") {
+    return `¥${formatCurrencyValue(amount)}`;
   }
   return `${formatCurrencyValue(amount)} ${currency}`;
 }
@@ -2836,6 +2861,10 @@ function normalizeTask(item) {
     videoUrl: item?.videoUrl || remote?.video_url || remoteContent?.video_url || "",
     outputUrl: item?.outputUrl || remote?.output_url || remoteContent?.output_url || "",
     resultUrl: item?.resultUrl || remote?.result_url || remoteContent?.result_url || "",
+    estimatedCharge: item?.estimatedCharge ?? 0,
+    chargedAmount: item?.chargedAmount ?? 0,
+    currency: item?.currency || "CNY",
+    billingStatus: item?.billingStatus || "",
     error: item?.error || remote?.error || remote?.err_msg || "",
     message: item?.message || remote?.message || remote?.msg || "",
   };
@@ -2876,7 +2905,7 @@ async function pollVideoTask(taskId, entryId = "") {
       elements.videoStatus.textContent = status || "unknown";
     }
 
-    if (!["succeeded", "success", "failed", "error", "completed"].includes(status)) {
+    if (!["succeeded", "success", "failed", "error", "completed", "billing_failed"].includes(status)) {
       state.videoPollTimer = window.setTimeout(() => pollVideoTask(taskId, entryId), 4000);
     }
   } catch (error) {
@@ -2910,7 +2939,19 @@ function upsertVideoHistoryByTask(task, payload) {
 function buildVideoSummary(task) {
   const status = task.status || "queued";
   if (task.videoUrl || task.outputUrl || task.resultUrl) {
+    if (task.billingStatus === "charged") {
+      return `任务 ${status}，结果地址已返回，已扣费 ${formatAmount(task.chargedAmount, task.currency)}。`;
+    }
+    if (task.billingStatus === "failed") {
+      return task.message || "任务已完成，但扣费失败。";
+    }
+    if (task.estimatedCharge) {
+      return `任务 ${status}，结果地址已返回，预计费用 ${formatAmount(task.estimatedCharge, task.currency)}。`;
+    }
     return `任务 ${status}，结果地址已返回。`;
+  }
+  if (task.billingStatus === "failed") {
+    return task.message || "任务已完成，但扣费失败。";
   }
   if (task.error || task.message) {
     return task.error || task.message;

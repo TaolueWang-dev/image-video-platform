@@ -3,6 +3,10 @@
 set -euo pipefail
 
 BASE_URL="${SMOKE_BASE_URL:-http://127.0.0.1:3000}"
+HAS_EXPLICIT_BASE_URL=0
+if [[ -n "${SMOKE_BASE_URL:-}" ]]; then
+  HAS_EXPLICIT_BASE_URL=1
+fi
 WRITE_MODE="${SMOKE_WRITE:-0}"
 COOKIE_JAR="$(mktemp)"
 ADMIN_COOKIE_JAR="$(mktemp)"
@@ -34,6 +38,11 @@ cleanup() {
 trap cleanup EXIT
 
 if [[ "${SMOKE_IN_PROCESS:-0}" == "1" ]]; then
+  node tests/smoke-runner.mjs
+  exit
+fi
+
+if [[ "${HAS_EXPLICIT_BASE_URL}" != "1" ]]; then
   node tests/smoke-runner.mjs
   exit
 fi

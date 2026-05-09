@@ -6,8 +6,10 @@
 - OpenAI 兼容文生图代理
 - SeedDance 文生视频任务创建、查询、回调入库
 - 君徕聚合支付充值下单、查单与异步通知入账
+- 人民币余额账户、账单流水与生成扣费
 - 单页前端工作台
 - 纯 Node.js built-ins 后端，便于直接容器化
+- 可配置 SMTP 验证码发信
 
 ## 目录结构
 
@@ -46,8 +48,8 @@ node src/server.js
 
 登录方式现在分成两条：
 
-- 普通用户：可在 `/login` 直接公开注册并设置密码，也可继续走邮箱验证码
-- 管理员：走邮箱验证码登录，不开放公开注册
+- 普通用户：可在 `/login` 直接公开注册并设置密码；注册时需要邮箱验证码激活，激活后仅支持密码登录
+- 管理员：不开放公开注册；可为种子管理员配置固定密码直接登录
 
 主体约束：
 
@@ -65,7 +67,7 @@ AUTH_PASSWORD_MIN_LENGTH=8
 
 ### 超级管理员种子
 
-如果设置了 `SUPER_ADMIN_EMAIL`，服务启动时会幂等写入一个 `role=super_admin` 的管理员账号。这个账号可以直接走邮箱验证码登录，不需要额外手工灌库。
+如果设置了 `SUPER_ADMIN_EMAIL`，服务启动时会幂等写入一个 `role=super_admin` 的管理员账号。如果同时设置了 `SUPER_ADMIN_PASSWORD`，则可以直接用邮箱和密码登录，不需要额外手工灌库。
 
 ### 本地开发验证码
 
@@ -75,6 +77,7 @@ AUTH_PASSWORD_MIN_LENGTH=8
 AUTH_EMAIL_DELIVERY_MODE=log
 AUTH_EXPOSE_DEV_CODE=true
 SUPER_ADMIN_EMAIL=admin@example.com
+SUPER_ADMIN_PASSWORD=change-me-now
 ```
 
 这样请求验证码时会：
@@ -84,9 +87,35 @@ SUPER_ADMIN_EMAIL=admin@example.com
 
 生产环境建议：
 
-- `AUTH_EMAIL_DELIVERY_MODE=disabled`
+- `AUTH_EMAIL_DELIVERY_MODE=smtp`
 - `AUTH_EXPOSE_DEV_CODE=false`
-- 由外部邮件投递流程或后续 SMTP 接入负责真实发送
+- 配置真实 SMTP 发件账号
+
+### SMTP 发信配置
+
+如果要把验证码真正发送到邮箱，至少配置：
+
+```bash
+AUTH_EMAIL_DELIVERY_MODE=smtp
+AUTH_EXPOSE_DEV_CODE=false
+AUTH_EMAIL_SMTP_HOST=smtp.example.com
+AUTH_EMAIL_SMTP_PORT=587
+AUTH_EMAIL_SMTP_SECURE=false
+AUTH_EMAIL_SMTP_USERNAME=mailer@example.com
+AUTH_EMAIL_SMTP_PASSWORD=your-smtp-password
+AUTH_EMAIL_SMTP_FROM_EMAIL=mailer@example.com
+AUTH_EMAIL_SMTP_FROM_NAME=Astral Forge
+```
+
+可选字段：
+
+- `AUTH_EMAIL_SMTP_REPLY_TO`
+- `AUTH_EMAIL_SMTP_SECURE=true`：常用于 465 端口
+
+当前 SMTP 发送链路会覆盖：
+
+- 用户注册激活验证码
+- 邮箱验证码请求接口 `POST /api/auth/email/request-code`
 
 ## 快速验活
 
@@ -116,6 +145,15 @@ npm run smoke
 - `GET /api/videos/tasks?limit=1`
 - `GET /api/videos/history?limit=1`
 - `GET /api/recharge/orders?limit=1`
+- `GET /api/billing/events?limit=1`
+
+## 人民币计费规则
+
+- 账户余额统一按人民币分存储，前端按元展示
+- 图片生成按 `¥0.15 * n` 预估与扣费
+- 视频生成按 `¥1.50 * durationSeconds` 预估与扣费
+- 充值成功、图片扣费、视频扣费、管理员调账都会写入 `billing-events.json`
+- 用户可通过 `GET /api/billing/events` 查看自己的最近账单流水
 
 如果你要顺便验证充值下单链路：
 
@@ -209,6 +247,14 @@ docker compose up -d --build
 - `AUTH_EMAIL_REQUEST_LIMIT_PER_IP`
 - `AUTH_EMAIL_DELIVERY_MODE`
 - `AUTH_EXPOSE_DEV_CODE`
+- `AUTH_EMAIL_SMTP_HOST`
+- `AUTH_EMAIL_SMTP_PORT`
+- `AUTH_EMAIL_SMTP_SECURE`
+- `AUTH_EMAIL_SMTP_USERNAME`
+- `AUTH_EMAIL_SMTP_PASSWORD`
+- `AUTH_EMAIL_SMTP_FROM_EMAIL`
+- `AUTH_EMAIL_SMTP_FROM_NAME`
+- `AUTH_EMAIL_SMTP_REPLY_TO`
 - `SUPER_ADMIN_EMAIL`
 - `SUPER_ADMIN_ROLE`
 

@@ -17,6 +17,8 @@ process.env.DATA_DIR = dataDir;
 process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 process.env.AUTH_EXPOSE_DEV_CODE = process.env.AUTH_EXPOSE_DEV_CODE || 'true';
 process.env.AUTH_EMAIL_DELIVERY_MODE = process.env.AUTH_EMAIL_DELIVERY_MODE || 'log';
+process.env.OPENAI_IMAGE_API_KEY = process.env.OPENAI_IMAGE_API_KEY || 'smoke-openai-key';
+process.env.SEEDDANCE_API_KEY = process.env.SEEDDANCE_API_KEY || 'smoke-seeddance-key';
 // Keep local smoke deterministic even when .env contains live payment credentials.
 process.env.JUNLIAI_PAY_PID = '';
 process.env.JUNLIAI_PAY_PRIVATE_KEY = '';
@@ -27,13 +29,91 @@ process.env.EPAY_PRIVATE_KEY = '';
 process.env.EPAY_PLATFORM_PUBLIC_KEY = '';
 process.env.EPAY_PUBLIC_KEY = '';
 
-const [{ handleApiRequest }, { loadConfig }, { DataStore }, { InMemoryRateLimiter }, { createRequestContext }] =
+let mockVideoTaskCounter = 0;
+let mockImageCounter = 0;
+globalThis.fetch = async (url, options = {}) => {
+  const target = String(url);
+  const method = String(options.method || 'GET').toUpperCase();
+
+  if (target.includes('/images/generations') || target.includes('/images/edits')) {
+    let payload = {};
+    if (typeof options.body === 'string') {
+      payload = JSON.parse(options.body || '{}');
+    }
+    const prompt = String(payload.prompt || '').toLowerCase();
+    if (prompt.includes('force image failure')) {
+      return new Response(JSON.stringify({ error: { message: 'mock image failure' } }), {
+        status: 500,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
+    mockImageCounter += 1;
+    return new Response(
+      JSON.stringify({
+        data: [
+          {
+            b64_json: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9erjQAAAAASUVORK5CYII=',
+            revised_prompt: payload.prompt || 'smoke image',
+          },
+        ],
+        response_id: `img_response_${mockImageCounter}`,
+      }),
+      {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      },
+    );
+  }
+
+  if (target.includes('/contents/generations/tasks') && method === 'POST') {
+    const payload = JSON.parse(String(options.body || '{}'));
+    const prompt = Array.isArray(payload.content)
+      ? String(payload.content.find((item) => item?.type === 'text')?.text || '')
+      : String(payload.prompt || '');
+    mockVideoTaskCounter += 1;
+    const taskId = prompt.toLowerCase().includes('force video failure')
+      ? `task_failed_${mockVideoTaskCounter}`
+      : `task_success_${mockVideoTaskCounter}`;
+    return new Response(JSON.stringify({ id: taskId, status: 'queued' }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+  }
+
+  if (target.includes('/contents/generations/tasks/') && method === 'GET') {
+    const taskId = decodeURIComponent(target.split('/').pop() || '');
+    if (taskId.startsWith('task_failed_')) {
+      return new Response(JSON.stringify({ id: taskId, status: 'failed', error: 'mock video failure' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
+    return new Response(
+      JSON.stringify({
+        id: taskId,
+        status: 'succeeded',
+        video_url: `https://cdn.example.com/${taskId}.mp4`,
+        output_url: `https://cdn.example.com/${taskId}.mp4`,
+        result_url: `https://cdn.example.com/${taskId}.mp4`,
+      }),
+      {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      },
+    );
+  }
+
+  throw new Error(`Unexpected fetch in smoke-runner: ${method} ${target}`);
+};
+
+const [{ handleApiRequest }, { loadConfig }, { DataStore }, { InMemoryRateLimiter }, { createRequestContext }, { createMailer }] =
   await Promise.all([
     import('../src/api-router.js'),
     import('../src/config.js'),
     import('../src/store.js'),
     import('../src/rate-limit.js'),
     import('../src/request-context.js'),
+    import('../src/mailer.js'),
   ]);
 const { AppError } = await import('../src/errors.js');
 
@@ -43,6 +123,13 @@ const deps = {
   config,
   store,
   rateLimiter: new InMemoryRateLimiter(),
+  mailer: createMailer({
+    config,
+    logger: {
+      info() {},
+      error() {},
+    },
+  }),
   logger: {
     debug() {},
     info() {},
@@ -436,6 +523,7 @@ for (const [pathName, label] of [
 
 const account = await apiRequest('GET', '/api/account', { cookieJar: userCookieJar });
 assert(account.json?.balance === 0, 'GET /api/account balance mismatch');
+assert(account.json?.currency === 'CNY', 'GET /api/account currency mismatch');
 for (const pathName of [
   '/api/images/history?limit=1',
   '/api/videos/tasks?limit=1',
@@ -445,6 +533,141 @@ for (const pathName of [
   const response = await apiRequest('GET', pathName, { cookieJar: userCookieJar });
   assert(Array.isArray(response.json?.items) && response.json.items.length === 0, `${pathName} expected empty items`);
 }
+
+const initialBillingEvents = await apiRequest('GET', '/api/billing/events?limit=10', { cookieJar: userCookieJar });
+assert(initialBillingEvents.statusCode === 200, 'GET /api/billing/events failed');
+assert(Array.isArray(initialBillingEvents.json?.items) && initialBillingEvents.json.items.length === 0, 'initial billing events should be empty');
+
+const smokeUserCredit = await apiRequest('POST', '/api/admin/users/user_smoke/balance-adjustments', {
+  cookieJar: superAdminCookieJar,
+  body: { amountDelta: 2000, reason: 'fund billing smoke user' },
+});
+assert(smokeUserCredit.statusCode === 200, 'funding smoke user failed');
+assert(smokeUserCredit.json?.account?.balance === 2000, 'funded smoke user balance mismatch');
+
+const imageSuccess = await apiRequest('POST', '/api/images/generations', {
+  cookieJar: userCookieJar,
+  body: { prompt: 'smoke image success', n: 2, size: '1024x1024', quality: 'medium', model: 'gpt-image-2' },
+});
+assert(imageSuccess.statusCode === 200, 'image generation success request failed');
+assert(imageSuccess.json?.chargedAmount === 30, 'image charged amount mismatch');
+assert(imageSuccess.json?.currency === 'CNY', 'image currency mismatch');
+const accountAfterImage = await apiRequest('GET', '/api/account', { cookieJar: userCookieJar });
+assert(accountAfterImage.json?.balance === 1970, 'image charge balance mismatch');
+
+const imageFailure = await apiRequest('POST', '/api/images/generations', {
+  cookieJar: userCookieJar,
+  body: { prompt: 'force image failure', n: 1, size: '1024x1024', quality: 'medium', model: 'gpt-image-2' },
+});
+assert(imageFailure.statusCode === 502, 'image upstream failure should return 502');
+const accountAfterImageFailure = await apiRequest('GET', '/api/account', { cookieJar: userCookieJar });
+assert(accountAfterImageFailure.json?.balance === 1970, 'image failure should not change balance');
+
+const videoCreate = await apiRequest('POST', '/api/videos/generations', {
+  cookieJar: userCookieJar,
+  body: { prompt: 'smoke video success', duration: 2, resolution: '720p', ratio: '16:9' },
+});
+assert(videoCreate.statusCode === 201, 'video create failed');
+assert(videoCreate.json?.estimatedCharge === 300, 'video estimated charge mismatch');
+assert(videoCreate.json?.chargedAmount === 0, 'video should not charge at create time');
+assert(videoCreate.json?.billingStatus === 'pending', 'video billing status should be pending after create');
+const videoTaskId = videoCreate.json?.id || videoCreate.json?.taskId;
+assert(videoTaskId, 'video create missing task id');
+
+const videoPolled = await apiRequest('GET', `/api/videos/tasks/${videoTaskId}`, { cookieJar: userCookieJar });
+assert(videoPolled.statusCode === 200, 'video poll failed');
+assert(videoPolled.json?.status === 'succeeded', 'video success status mismatch');
+assert(videoPolled.json?.chargedAmount === 300, 'video charged amount mismatch');
+assert(videoPolled.json?.billingStatus === 'charged', 'video should be charged on success');
+const accountAfterVideo = await apiRequest('GET', '/api/account', { cookieJar: userCookieJar });
+assert(accountAfterVideo.json?.balance === 1670, 'video charge balance mismatch');
+
+const videoFailureCreate = await apiRequest('POST', '/api/videos/generations', {
+  cookieJar: userCookieJar,
+  body: { prompt: 'force video failure', duration: 2, resolution: '720p', ratio: '16:9' },
+});
+assert(videoFailureCreate.statusCode === 201, 'video failure create failed');
+const videoFailureTaskId = videoFailureCreate.json?.id || videoFailureCreate.json?.taskId;
+const videoFailurePolled = await apiRequest('GET', `/api/videos/tasks/${videoFailureTaskId}`, { cookieJar: userCookieJar });
+assert(videoFailurePolled.statusCode === 200, 'video failure poll failed');
+assert(videoFailurePolled.json?.status === 'failed', 'video failure status mismatch');
+assert((videoFailurePolled.json?.chargedAmount || 0) === 0, 'failed video should not charge');
+const accountAfterVideoFailure = await apiRequest('GET', '/api/account', { cookieJar: userCookieJar });
+assert(accountAfterVideoFailure.json?.balance === 1670, 'failed video should not change balance');
+
+const billingEvents = await apiRequest('GET', '/api/billing/events?limit=20', { cookieJar: userCookieJar });
+assert(billingEvents.statusCode === 200, 'billing events fetch failed');
+const billingEventTypes = billingEvents.json?.items?.map((item) => item.type) || [];
+assert(billingEventTypes.includes('admin_adjustment'), 'billing events missing admin adjustment');
+assert(billingEventTypes.includes('image_charge'), 'billing events missing image charge');
+assert(billingEventTypes.includes('video_charge'), 'billing events missing video charge');
+
+const rechargeOrder = await apiRequest('POST', '/api/recharge/orders', {
+  cookieJar: userCookieJar,
+  body: {
+    channel: 'alipay',
+    amount: 500,
+    subject: 'billing smoke recharge',
+    metadata: { source: 'tests/smoke-runner.mjs', kind: 'billing' },
+  },
+});
+assert(rechargeOrder.statusCode === 201, 'recharge order create failed');
+await store.completeOrderPayment({
+  orderId: rechargeOrder.json?.id,
+  eventKey: `smoke-recharge:${rechargeOrder.json?.id}`,
+  provider: 'junliai',
+  providerTradeNo: 'provider_smoke_recharge',
+  notifyPayload: { smoke: true },
+  paidAt: new Date().toISOString(),
+});
+const accountAfterRecharge = await apiRequest('GET', '/api/account', { cookieJar: userCookieJar });
+assert(accountAfterRecharge.json?.balance === 2170, 'recharge success balance mismatch');
+const billingAfterRecharge = await apiRequest('GET', '/api/billing/events?limit=30', { cookieJar: userCookieJar });
+assert((billingAfterRecharge.json?.items || []).some((item) => item.type === 'recharge'), 'recharge billing event missing');
+
+const insufficientImage = await apiRequest('POST', '/api/images/generations', {
+  cookieJar: userCookieJar,
+  body: { prompt: 'too expensive image', n: 500, size: '1024x1024', quality: 'medium', model: 'gpt-image-2' },
+});
+assert(insufficientImage.statusCode === 402, 'insufficient balance image precheck should return 402');
+
+const concurrentUserId = 'user_concurrent_smoke';
+await seedUser('concurrent@example.com', 'user', concurrentUserId);
+const seededConcurrentFunding = await store.applyBillingAdjustment({
+  userId: concurrentUserId,
+  type: 'admin_adjustment',
+  amountDelta: 20,
+  sourceType: 'system',
+  sourceId: 'smoke_runner',
+  idempotencyKey: 'seed-concurrent-balance',
+  allowNegative: true,
+});
+assert(seededConcurrentFunding.account.balance === 20, 'concurrent seed balance mismatch');
+const [chargeA, chargeB] = await Promise.all([
+  store.applyBillingAdjustment({
+    userId: concurrentUserId,
+    type: 'image_charge',
+    amountDelta: -15,
+    sourceType: 'concurrency_test',
+    sourceId: 'A',
+    idempotencyKey: 'concurrency-A',
+    allowNegative: false,
+  }),
+  store.applyBillingAdjustment({
+    userId: concurrentUserId,
+    type: 'image_charge',
+    amountDelta: -15,
+    sourceType: 'concurrency_test',
+    sourceId: 'B',
+    idempotencyKey: 'concurrency-B',
+    allowNegative: false,
+  }),
+]);
+assert((chargeA.insufficient && !chargeB.insufficient) || (!chargeA.insufficient && chargeB.insufficient), 'exactly one concurrent charge should fail');
+const concurrentAccount = await store.getAccountByUserId(concurrentUserId);
+assert(concurrentAccount.balance === 5, 'concurrent account balance mismatch');
+const concurrentEvents = await store.listBillingEventsByUserId(concurrentUserId);
+assert(concurrentEvents.filter((item) => item.type === 'image_charge').length === 1, 'concurrent billing event count mismatch');
 
 const adminList = await apiRequest('GET', '/api/admin/users?limit=20', { cookieJar: operatorCookieJar });
 assert(adminList.statusCode === 200, 'operator GET /api/admin/users failed');
@@ -543,6 +766,15 @@ const checked = [
   'authenticated GET /api/videos/tasks?limit=1',
   'authenticated GET /api/videos/history?limit=1',
   'authenticated GET /api/recharge/orders?limit=1',
+  'authenticated GET /api/billing/events?limit=10',
+  'GET /api/account returns CNY semantics',
+  'POST /api/images/generations success charges balance',
+  'POST /api/images/generations upstream failure does not charge',
+  'POST /api/videos/generations success charges on poll success',
+  'POST /api/videos/generations failure does not charge',
+  'recharge success writes billing event',
+  'insufficient balance precheck rejects image generation',
+  'concurrent charge safety preserves non-negative balance',
   'operator GET /api/admin/users',
   'operator GET /api/admin/users/:id',
   'operator denied on POST /api/admin/users',
@@ -555,6 +787,12 @@ const checked = [
 ];
 
 if (writeMode) {
+  const ordersBeforeSmokeWrite = await apiRequest('GET', '/api/recharge/orders?limit=20', {
+    cookieJar: userCookieJar,
+  });
+  assert(ordersBeforeSmokeWrite.statusCode === 200, 'SMOKE_WRITE initial orders fetch failed');
+  const initialOrderTotal = ordersBeforeSmokeWrite.json?.total ?? 0;
+
   const smokeOrder = await apiRequest('POST', '/api/recharge/orders', {
     cookieJar: userCookieJar,
     body: {
@@ -571,8 +809,9 @@ if (writeMode) {
   assert(smokeOrder.json?.paymentProvider === 'junliai', 'SMOKE_WRITE payment provider mismatch');
   assert(smokeOrder.json?.id, 'SMOKE_WRITE missing order id');
   assert(smokeOrder.json?.amount === 100, 'SMOKE_WRITE amount mismatch');
-  const smokeOrders = await apiRequest('GET', '/api/recharge/orders?limit=1', { cookieJar: userCookieJar });
-  assert(smokeOrders.json?.total === 1, 'SMOKE_WRITE total orders mismatch');
+  const smokeOrders = await apiRequest('GET', '/api/recharge/orders?limit=20', { cookieJar: userCookieJar });
+  assert(smokeOrders.statusCode === 200, 'SMOKE_WRITE orders fetch failed');
+  assert(smokeOrders.json?.total === initialOrderTotal + 1, 'SMOKE_WRITE total orders mismatch');
   assert(smokeOrders.bodyText.includes('"userId":"user_smoke"'), 'SMOKE_WRITE order owner mismatch');
   checked.push('POST /api/recharge/orders');
 }

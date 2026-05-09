@@ -237,8 +237,8 @@
 <span class="material-symbols-outlined text-[32px]" style="font-variation-settings: 'FILL' 1;">stars</span>
 </div>
 <div>
-<p class="font-label-sm text-label-sm text-on-surface-variant mb-1">当前可用额度</p>
-<h2 class="font-display text-display text-on-surface tracking-tight"><span id="account-balance">1,250</span> <span class="font-h2 text-h2 text-on-surface-variant font-normal" id="account-unit">点</span></h2>
+<p class="font-label-sm text-label-sm text-on-surface-variant mb-1">当前账户余额</p>
+<h2 class="font-display text-display text-on-surface tracking-tight"><span id="account-balance">1,250</span> <span class="font-h2 text-h2 text-on-surface-variant font-normal" id="account-unit">元</span></h2>
 <p class="mt-2 text-sm text-on-surface-variant" id="account-meta">账户信息已更新</p>
 </div>
 </div>
@@ -266,21 +266,21 @@
 <section>
 <div class="flex items-end justify-between mb-md">
 <div>
-<h3 class="font-h1 text-h1 text-on-surface">额度套餐</h3>
+<h3 class="font-h1 text-h1 text-on-surface">充值套餐</h3>
 <p class="font-body-lg text-body-lg text-on-surface-variant mt-2">选择适合您创作需求的套餐</p>
 </div>
 </div>
 <form class="space-y-md" id="recharge-form">
 <input name="amount" type="hidden" value="249"/>
 <input name="channel" type="hidden" value="alipay"/>
-<input name="subject" type="hidden" value="Astral Forge 专业版充值"/>
+<input name="subject" type="hidden" value="Astral Forge RMB 充值"/>
 <div class="grid grid-cols-1 md:grid-cols-3 gap-md">
 <!-- Standard Package -->
 <div class="bg-surface-container-lowest rounded-xl shadow-[0_10_30px_-5px_rgba(0,0,0,0.04)] p-md flex flex-col hover:shadow-[0_15px_40px_-10px_rgba(0,0,0,0.08)] transition-shadow duration-300 border border-surface-container-low">
 <div class="mb-6">
 <span class="inline-block px-3 py-1 bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm rounded-full mb-4">标准版</span>
 <h4 class="font-h1 text-h1 text-on-surface mb-2">¥99</h4>
-<p class="font-body-md text-body-md text-on-surface-variant">500 创作点数</p>
+<p class="font-body-md text-body-md text-on-surface-variant">到账 ¥50.00</p>
 </div>
 <ul class="space-y-4 mb-8 flex-grow">
 <li class="flex items-start gap-3">
@@ -296,7 +296,7 @@
 <span class="font-body-md text-body-md text-on-surface-variant">社区技术支持</span>
 </li>
 </ul>
-<button class="w-full bg-surface-container hover:bg-surface-container-high text-on-surface font-label-sm text-label-sm px-6 py-3 rounded-full transition-colors duration-200" onclick="this.form.amount.value='99';this.form.subject.value='Astral Forge 标准版充值';" type="submit">
+<button class="w-full bg-surface-container hover:bg-surface-container-high text-on-surface font-label-sm text-label-sm px-6 py-3 rounded-full transition-colors duration-200" onclick="this.form.amount.value='99';this.form.subject.value='Astral Forge RMB 充值';" type="submit">
                             选择标准版
                         </button>
 </div>
@@ -310,7 +310,7 @@
 <span class="text-primary font-label-sm text-label-sm flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">local_fire_department</span> 最受欢迎</span>
 </div>
 <h4 class="font-h1 text-h1 text-on-surface mb-2">¥249</h4>
-<p class="font-body-md text-body-md text-on-surface-variant">1,500 创作点数</p>
+<p class="font-body-md text-body-md text-on-surface-variant">到账 ¥99.00</p>
 </div>
 <ul class="space-y-4 mb-8 flex-grow z-10">
 <li class="flex items-start gap-3">
@@ -330,7 +330,7 @@
 <span class="font-body-md text-body-md text-on-surface-variant">24/7 优先客服支持</span>
 </li>
 </ul>
-<button class="w-full bg-primary hover:shadow-[0_4px_12px_rgba(0,88,190,0.2)] hover:-translate-y-0.5 text-on-primary font-label-sm text-label-sm px-6 py-3 rounded-full transition-all duration-200 z-10" onclick="this.form.amount.value='249';this.form.subject.value='Astral Forge 专业版充值';" type="submit">
+<button class="w-full bg-primary hover:shadow-[0_4px_12px_rgba(0,88,190,0.2)] hover:-translate-y-0.5 text-on-primary font-label-sm text-label-sm px-6 py-3 rounded-full transition-all duration-200 z-10" onclick="this.form.amount.value='249';this.form.subject.value='Astral Forge RMB 充值';" type="submit">
                             选择专业版
                         </button>
 </div>
@@ -344,7 +344,7 @@
 <ul class="space-y-4 mb-8 flex-grow">
 <li class="flex items-start gap-3">
 <span class="material-symbols-outlined text-primary text-[20px]">check</span>
-<span class="font-body-md text-body-md text-on-surface-variant">无限点数按月结算</span>
+<span class="font-body-md text-body-md text-on-surface-variant">更高档位请按实际人民币金额结算</span>
 </li>
 <li class="flex items-start gap-3">
 <span class="material-symbols-outlined text-primary text-[20px]">check</span>

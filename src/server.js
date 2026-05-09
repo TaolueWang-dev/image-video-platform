@@ -6,6 +6,7 @@ import { handleApiRequest } from './api-router.js';
 import { loadConfig } from './config.js';
 import { AppError, methodNotAllowed, notFound } from './errors.js';
 import { createLogger } from './logger.js';
+import { createMailer } from './mailer.js';
 import { createRequestContext, getDurationMs, withRequestHeaders } from './request-context.js';
 import { InMemoryRateLimiter } from './rate-limit.js';
 import { DataStore } from './store.js';
@@ -14,6 +15,7 @@ import { json, resolveProjectPath, text } from './utils.js';
 const config = loadConfig();
 const store = new DataStore(config);
 const logger = createLogger({ env: config.env });
+const mailer = createMailer({ config, logger });
 const rateLimiter = new InMemoryRateLimiter();
 const publicDir = resolveProjectPath(config.staticDir);
 
@@ -116,7 +118,7 @@ async function requestListener(req, res) {
 
     if (url.pathname.startsWith('/api/')) {
       const response = await handleApiRequest(
-        { config, store, logger, rateLimiter },
+        { config, store, logger, rateLimiter, mailer },
         req,
         url,
         context,
