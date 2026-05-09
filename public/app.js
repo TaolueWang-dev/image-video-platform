@@ -27,6 +27,8 @@ const state = {
   currentTaskId: null,
   recentOrders: [],
   recentVideoTasks: [],
+  usageRecords: [],
+  billingEvents: [],
   imageHistory: [],
   videoHistory: [],
   imageFollowUpContext: null,
@@ -56,6 +58,8 @@ const elements = {
   refreshAccount: document.getElementById("refresh-account"),
   recentOrders: document.getElementById("recent-orders"),
   recentVideoTasks: document.getElementById("recent-video-tasks"),
+  usageRecords: document.getElementById("usage-records"),
+  billingEventsList: document.getElementById("billing-events-list"),
   imageForm: document.getElementById("image-form"),
   imageMessage: document.getElementById("image-message"),
   imageStatus: document.getElementById("image-status"),
@@ -162,6 +166,17 @@ async function boot() {
       loadOrders(),
       loadVideoTasks(),
       initializeConversationManager("video"),
+    ]);
+    return;
+  }
+
+  if (page === "recharge") {
+    await Promise.all([
+      loadAccount(),
+      loadOrders(),
+      loadVideoTasks(),
+      loadUsageRecords(),
+      loadBillingEvents(),
     ]);
     return;
   }
@@ -1115,6 +1130,54 @@ async function loadVideoTasks() {
     }
   } catch {
     renderRecentVideoTasks();
+  }
+}
+
+async function loadUsageRecords() {
+  if (!isUserSession()) {
+    state.usageRecords = [];
+    renderUsageRecords();
+    return;
+  }
+
+  try {
+    const [imageData, videoData] = await Promise.all([
+      requestJson(`/api/images/history?limit=${MAX_SESSION_ITEMS}`, { method: "GET" }),
+      requestJson(`/api/videos/history?limit=${MAX_SESSION_ITEMS}`, { method: "GET" }),
+    ]);
+
+    const imageItems = Array.isArray(imageData?.items)
+      ? imageData.items.map((item) => normalizeUsageRecord("image", item))
+      : [];
+    const videoItems = Array.isArray(videoData?.items)
+      ? videoData.items.map((item) => normalizeUsageRecord("video", item))
+      : [];
+
+    state.usageRecords = [...imageItems, ...videoItems]
+      .sort((left, right) => String(right.updatedAt || right.createdAt || "").localeCompare(String(left.updatedAt || left.createdAt || "")));
+    renderUsageRecords();
+  } catch {
+    state.usageRecords = [];
+    renderUsageRecords(true);
+  }
+}
+
+async function loadBillingEvents() {
+  if (!isUserSession()) {
+    state.billingEvents = [];
+    renderBillingEvents();
+    return;
+  }
+
+  try {
+    const data = await requestJson(`/api/billing/events?limit=${MAX_SESSION_ITEMS}`, {
+      method: "GET",
+    });
+    state.billingEvents = Array.isArray(data?.items) ? data.items.map(normalizeBillingEventItem) : [];
+    renderBillingEvents();
+  } catch {
+    state.billingEvents = [];
+    renderBillingEvents(true);
   }
 }
 
@@ -2733,6 +2796,72 @@ function renderRecentVideoTasks() {
     .join("");
 }
 
+function renderUsageRecords(hasError = false) {
+  if (!elements.usageRecords) {
+    return;
+  }
+  if (hasError) {
+    elements.usageRecords.className = "list-panel empty-state";
+    elements.usageRecords.textContent = "消费记录加载失败";
+    return;
+  }
+  if (!state.usageRecords.length) {
+    elements.usageRecords.className = "list-panel empty-state";
+    elements.usageRecords.textContent = "暂无生成消费记录";
+    return;
+  }
+
+  elements.usageRecords.className = "list-panel";
+  elements.usageRecords.innerHTML = state.usageRecords.map((item) => `
+    <article class="list-item">
+      <div class="list-item-head">
+        <strong>${escapeHtml(item.title)}</strong>
+        ${renderStatusBadge(item.status)}
+      </div>
+      <div class="list-item-body">
+        <div class="list-item-meta">
+          <span>${escapeHtml(item.kindLabel)}</span>
+          <span>${escapeHtml(formatAmount(item.amount, item.currency))}</span>
+        </div>
+        <p>${escapeHtml(item.metaLine)}</p>
+      </div>
+    </article>
+  `).join("");
+}
+
+function renderBillingEvents(hasError = false) {
+  if (!elements.billingEventsList) {
+    return;
+  }
+  if (hasError) {
+    elements.billingEventsList.className = "list-panel empty-state";
+    elements.billingEventsList.textContent = "账户流水加载失败";
+    return;
+  }
+  if (!state.billingEvents.length) {
+    elements.billingEventsList.className = "list-panel empty-state";
+    elements.billingEventsList.textContent = "暂无账户流水";
+    return;
+  }
+
+  elements.billingEventsList.className = "list-panel";
+  elements.billingEventsList.innerHTML = state.billingEvents.map((item) => `
+    <article class="list-item">
+      <div class="list-item-head">
+        <strong>${escapeHtml(item.title)}</strong>
+        ${renderStatusBadge(item.tone)}
+      </div>
+      <div class="list-item-body">
+        <div class="list-item-meta">
+          <span>${escapeHtml(item.sourceLabel)}</span>
+          <span>${escapeHtml(formatSignedAmount(item.amountDelta, item.currency))}</span>
+        </div>
+        <p>${escapeHtml(`${formatThreadTime(item.createdAt)} · 余额 ${formatAmount(item.afterBalance, item.currency)}`)}</p>
+      </div>
+    </article>
+  `).join("");
+}
+
 function renderStatusBadge(status) {
   const normalized = String(status || "").toLowerCase();
   let tone = "pending";
@@ -2771,6 +2900,14 @@ function formatAmount(amount, currency = "CNY") {
     return `¥${formatCurrencyValue(amount)}`;
   }
   return `${formatCurrencyValue(amount)} ${currency}`;
+}
+
+function formatSignedAmount(amount, currency = "CNY") {
+  if (typeof amount !== "number") {
+    return "--";
+  }
+  const prefix = amount > 0 ? "+" : "";
+  return `${prefix}${formatAmount(amount, currency)}`;
 }
 
 function pushRecentOrder(order) {
@@ -2818,6 +2955,67 @@ function normalizeOrder(item) {
       "",
     amount: typeof item?.amount === "number" ? item.amount : Number(item?.amount || 0),
     currency: item?.currency || "CNY",
+  };
+}
+
+function normalizeUsageRecord(kind, item) {
+  if (kind === "image") {
+    const title = String(item?.prompt || "图片生成").trim() || "图片生成";
+    const amount = typeof item?.chargedAmount === "number" ? item.chargedAmount : Number(item?.chargedAmount || 0);
+    const model = item?.model || item?.request?.model || "--";
+    const imageCount = Array.isArray(item?.images) ? item.images.length : 0;
+    return {
+      id: item?.id || createId(),
+      kindLabel: "图片生成",
+      title: truncateText(title, 40),
+      status: item?.billingStatus || "charged",
+      amount,
+      currency: item?.currency || "CNY",
+      updatedAt: item?.updatedAt || item?.createdAt || "",
+      createdAt: item?.createdAt || "",
+      metaLine: `${model} · ${imageCount || 0} 张结果 · ${formatThreadTime(item?.updatedAt || item?.createdAt || "")}`,
+    };
+  }
+
+  const task = normalizeTask(item);
+  return {
+    id: task.id || createId(),
+    kindLabel: "视频生成",
+    title: truncateText(task.prompt || "视频生成", 40),
+    status: task.billingStatus || task.status || "queued",
+    amount: typeof task.chargedAmount === "number" ? task.chargedAmount : Number(task.chargedAmount || 0),
+    currency: task.currency || "CNY",
+    updatedAt: task.updatedAt || task.createdAt || "",
+    createdAt: task.createdAt || "",
+    metaLine: `${task.model || "--"} · ${task.status || "--"} · ${formatThreadTime(task.updatedAt || task.createdAt || "")}`,
+  };
+}
+
+function normalizeBillingEventItem(item) {
+  const type = String(item?.type || "").trim();
+  const sourceType = String(item?.sourceType || "").trim();
+  const amountDelta = typeof item?.amountDelta === "number" ? item.amountDelta : Number(item?.amountDelta || 0);
+  const titleMap = {
+    recharge: "充值入账",
+    image_generation: "图片生成扣费",
+    video_generation: "视频生成扣费",
+    admin_adjustment: "管理员调整",
+  };
+  const sourceMap = {
+    order: "充值订单",
+    image_history: "图片记录",
+    video_task: "视频任务",
+    admin: "管理员操作",
+  };
+  return {
+    id: item?.id || createId(),
+    title: titleMap[type] || type || "账户流水",
+    sourceLabel: sourceMap[sourceType] || sourceType || "系统",
+    tone: amountDelta >= 0 ? "success" : "completed",
+    amountDelta,
+    currency: item?.currency || "CNY",
+    afterBalance: typeof item?.afterBalance === "number" ? item.afterBalance : Number(item?.afterBalance || 0),
+    createdAt: item?.createdAt || item?.updatedAt || "",
   };
 }
 
