@@ -1426,6 +1426,59 @@ code {
   font-size: 0.86rem;
 }
 
+.admin-adjustment-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.admin-adjustment-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 132px) minmax(0, 1fr);
+}
+
+.admin-adjustment-form input {
+  width: 100%;
+  min-height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(255, 255, 255, 0.94);
+  color: #0f172a;
+  padding: 0 12px;
+}
+
+.admin-adjustment-form input::placeholder {
+  color: #94a3b8;
+}
+
+.admin-adjustment-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-adjustment-hint {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.admin-adjustment-result {
+  margin: 0;
+  color: #0f172a;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.admin-adjustment-result.is-error {
+  color: #b91c1c;
+}
+
 .status-badge {
   min-height: 28px;
   padding-inline: 10px;
@@ -2554,6 +2607,11 @@ body[data-page="home"] #account-summary.summary-list .summary-item strong {
   word-break: break-word;
 }
 
+body[data-page="admin"] .admin-adjustment-form .primary-button {
+  min-height: 40px;
+  padding: 0 16px;
+}
+
 @media (max-width: 1100px) {
   .forge-app,
   .forge-hero-grid,
@@ -2569,6 +2627,12 @@ body[data-page="home"] #account-summary.summary-list .summary-item strong {
 
   .forge-sidebar {
     position: static;
+  }
+}
+
+@media (max-width: 720px) {
+  .admin-adjustment-grid {
+    grid-template-columns: 1fr;
   }
 }
 

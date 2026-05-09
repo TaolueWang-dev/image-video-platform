@@ -1694,11 +1694,13 @@ async function loadAdminPage() {
                 <span>${escapeHtml(item.balance == null ? "--" : formatCurrencyValue(item.balance))} ${escapeHtml(item.currency || "CNY")}</span>
               </div>
               <p>${escapeHtml(item.updatedAt || item.createdAt || "--")}</p>
+              ${renderAdminAdjustmentForm(item)}
             </div>
           </article>
         `,
       )
       .join("");
+    bindAdminAdjustmentForms();
     if (elements.adminMessage) {
       elements.adminMessage.textContent = `已加载 ${items.length} 个用户。`;
     }
@@ -1706,6 +1708,104 @@ async function loadAdminPage() {
     elements.adminUsersList.className = "list-panel empty-state";
     elements.adminUsersList.textContent = "加载用户列表失败";
     setMessage(elements.adminMessage, error.message, true);
+  }
+}
+
+function canAdjustManagedUserBalance() {
+  return isAdminSession() && state.auth.role === "super_admin";
+}
+
+function renderAdminAdjustmentForm(item) {
+  if (!canAdjustManagedUserBalance()) {
+    return "";
+  }
+
+  return `
+    <form class="admin-adjustment-form" data-admin-adjust-form data-user-id="${escapeAttribute(item.id || "")}">
+      <div class="admin-adjustment-grid">
+        <input
+          name="amount"
+          type="number"
+          inputmode="decimal"
+          min="0.01"
+          step="0.01"
+          placeholder="增加金额（元）"
+          required
+        />
+        <input
+          name="reason"
+          type="text"
+          maxlength="80"
+          placeholder="原因，例如：人工补贴"
+          required
+        />
+      </div>
+      <div class="admin-adjustment-actions">
+        <button class="primary-button" type="submit">直接增加</button>
+        <p class="admin-adjustment-hint">按当前系统语义写入余额，内部以分存储，并生成 admin_adjustment 流水。</p>
+      </div>
+      <p class="admin-adjustment-result" data-admin-adjust-result></p>
+    </form>
+  `;
+}
+
+function bindAdminAdjustmentForms() {
+  document.querySelectorAll("[data-admin-adjust-form]").forEach((form) => {
+    form.addEventListener("submit", handleAdminAdjustmentSubmit);
+  });
+}
+
+function parseYuanToCents(rawValue) {
+  const value = String(rawValue || "").trim();
+  if (!value) {
+    throw new Error("请输入增加金额。");
+  }
+
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error("增加金额必须大于 0。");
+  }
+
+  const cents = Math.round(amount * 100);
+  if (cents <= 0) {
+    throw new Error("增加金额必须大于 0。");
+  }
+  return cents;
+}
+
+async function handleAdminAdjustmentSubmit(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const userId = form.dataset.userId || "";
+  const resultElement = form.querySelector("[data-admin-adjust-result]");
+  const formData = new FormData(form);
+
+  try {
+    const amountDelta = parseYuanToCents(formData.get("amount"));
+    const reason = String(formData.get("reason") || "").trim();
+    if (!reason) {
+      throw new Error("请输入增加原因。");
+    }
+
+    setLoading(form, true);
+    setMessage(resultElement, "正在提交...");
+
+    const result = await requestJson(`/api/admin/users/${encodeURIComponent(userId)}/balance-adjustments`, {
+      method: "POST",
+      body: JSON.stringify({
+        amountDelta,
+        reason,
+      }),
+    });
+
+    const balanceText = formatAmount(result?.account?.balance, result?.account?.currency || "CNY");
+    setMessage(resultElement, `已增加 ${formatAmount(amountDelta)}，最新余额 ${balanceText}`);
+    form.reset();
+    await loadAdminPage();
+  } catch (error) {
+    setMessage(resultElement, error.message, true);
+  } finally {
+    setLoading(form, false);
   }
 }
 
