@@ -1280,6 +1280,29 @@ code {
   display: none;
 }
 
+#video-form .video-option-control {
+  color: rgb(100 116 139);
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+#video-form input[type="radio"]:checked + .video-option-control {
+  background: rgba(255, 255, 255, 0.95);
+  color: rgb(15 23 42);
+  box-shadow: 0 4px 14px -10px rgba(15, 23, 42, 0.35);
+}
+
+#video-form input[type="radio"]:focus-visible + .video-option-control {
+  outline: 2px solid rgba(14, 116, 144, 0.28);
+  outline-offset: 1px;
+}
+
+#video-form label:hover .video-option-control {
+  color: rgb(15 23 42);
+}
+
 .video-mention-option {
   display: grid;
   grid-template-columns: 44px minmax(0, 1fr);

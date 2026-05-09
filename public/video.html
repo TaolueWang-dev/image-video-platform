@@ -198,33 +198,55 @@
 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
 <div class="flex flex-col gap-sm">
 <span class="px-1 font-label-sm text-label-sm text-on-surface-variant">生成时长</span>
-<input name="duration" type="hidden" value="4"/>
 <div class="flex bg-surface-container-low rounded-lg p-1">
-<button class="flex-1 py-2 px-4 rounded-md font-label-sm text-label-sm text-on-surface bg-surface-container-lowest shadow-sm" type="button">4s</button>
-<button class="flex-1 py-2 px-4 rounded-md font-label-sm text-label-sm text-on-surface-variant hover:text-on-surface transition-colors" type="button">8s</button>
+<label class="flex-1 cursor-pointer">
+<input checked class="sr-only" name="duration" type="radio" value="4"/>
+<span class="video-option-control block py-2 px-4 rounded-md font-label-sm text-label-sm text-center">4s</span>
+</label>
+<label class="flex-1 cursor-pointer">
+<input class="sr-only" name="duration" type="radio" value="8"/>
+<span class="video-option-control block py-2 px-4 rounded-md font-label-sm text-label-sm text-center">8s</span>
+</label>
+<label class="flex-1 cursor-pointer">
+<input class="sr-only" name="duration" type="radio" value="15"/>
+<span class="video-option-control block py-2 px-4 rounded-md font-label-sm text-label-sm text-center">15s</span>
+</label>
 </div>
 </div>
 <div class="flex flex-col gap-sm">
 <span class="px-1 font-label-sm text-label-sm text-on-surface-variant">分辨率</span>
-<input name="resolution" type="hidden" value="1080p"/>
 <div class="flex bg-surface-container-low rounded-lg p-1">
-<button class="flex-1 py-2 px-4 rounded-md font-label-sm text-label-sm text-on-surface-variant hover:text-on-surface transition-colors" type="button">720p</button>
-<button class="flex-1 py-2 px-4 rounded-md font-label-sm text-label-sm text-on-surface bg-surface-container-lowest shadow-sm" type="button">1080p</button>
+<label class="flex-1 cursor-pointer">
+<input class="sr-only" name="resolution" type="radio" value="720p"/>
+<span class="video-option-control block py-2 px-4 rounded-md font-label-sm text-label-sm text-center">720p</span>
+</label>
+<label class="flex-1 cursor-pointer">
+<input checked class="sr-only" name="resolution" type="radio" value="1080p"/>
+<span class="video-option-control block py-2 px-4 rounded-md font-label-sm text-label-sm text-center">1080p</span>
+</label>
 </div>
 </div>
 <div class="flex flex-col gap-sm">
 <span class="px-1 font-label-sm text-label-sm text-on-surface-variant">画面比例</span>
-<input name="aspectRatio" type="hidden" value="16:9"/>
 <div class="flex bg-surface-container-low rounded-lg p-1">
-<button class="flex-1 py-2 rounded-md font-label-sm text-label-sm text-on-surface bg-surface-container-lowest shadow-sm" type="button">
+<label class="flex-1 cursor-pointer">
+<input checked class="sr-only" name="aspectRatio" type="radio" value="16:9"/>
+<span class="video-option-control flex items-center justify-center py-2 rounded-md font-label-sm text-label-sm">
 <span class="material-symbols-outlined text-sm">crop_16_9</span>
-</button>
-<button class="flex-1 py-2 rounded-md font-label-sm text-label-sm text-on-surface-variant hover:text-on-surface transition-colors" type="button">
+</span>
+</label>
+<label class="flex-1 cursor-pointer">
+<input class="sr-only" name="aspectRatio" type="radio" value="9:16"/>
+<span class="video-option-control flex items-center justify-center py-2 rounded-md font-label-sm text-label-sm">
 <span class="material-symbols-outlined text-sm">crop_portrait</span>
-</button>
-<button class="flex-1 py-2 rounded-md font-label-sm text-label-sm text-on-surface-variant hover:text-on-surface transition-colors" type="button">
+</span>
+</label>
+<label class="flex-1 cursor-pointer">
+<input class="sr-only" name="aspectRatio" type="radio" value="1:1"/>
+<span class="video-option-control flex items-center justify-center py-2 rounded-md font-label-sm text-label-sm">
 <span class="material-symbols-outlined text-sm">crop_square</span>
-</button>
+</span>
+</label>
 </div>
 </div>
 </div>
