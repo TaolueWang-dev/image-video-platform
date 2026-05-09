@@ -1,0 +1,67 @@
+[
+  {
+    "id": "code_1778251935232_f49b46d75f33",
+    "email": "admin@example.com",
+    "subjectType": "admin",
+    "subjectId": "admin_1778251935225",
+    "codeHash": "644424db3b6960261ecde668102f5278d8c3fc32afe6c710e4b2863eed4e183b",
+    "createdAt": "2026-05-08T14:52:15.232Z",
+    "updatedAt": "2026-05-08T14:52:15.232Z",
+    "expiresAt": "2026-05-08T14:57:15.232Z",
+    "usedAt": "2026-05-08T14:52:15.232Z",
+    "revokedAt": "",
+    "requestIp": "127.0.0.1"
+  },
+  {
+    "id": "code_1778251935235_5df4dacf1bb3",
+    "email": "admin@example.com",
+    "subjectType": "admin",
+    "subjectId": "admin_1778251935225",
+    "codeHash": "a9e1efedb664ce45475795941246eb5a15e49390f866014d649d8cf8a2ad8d14",
+    "createdAt": "2026-05-08T14:52:15.235Z",
+    "updatedAt": "2026-05-08T14:52:15.235Z",
+    "expiresAt": "2026-05-08T14:57:15.235Z",
+    "usedAt": "",
+    "revokedAt": "2026-05-08T14:52:15.235Z",
+    "requestIp": "127.0.0.1"
+  },
+  {
+    "id": "code_1778251935235_06e244349357",
+    "email": "admin@example.com",
+    "subjectType": "admin",
+    "subjectId": "admin_1778251935225",
+    "codeHash": "aadd740a9e62cad8a978b99904915779ca45983de991e5958008df59bb58c658",
+    "createdAt": "2026-05-08T14:52:15.235Z",
+    "updatedAt": "2026-05-08T14:52:15.235Z",
+    "expiresAt": "2026-05-08T14:57:15.235Z",
+    "usedAt": "",
+    "revokedAt": "2026-05-08T14:52:15.235Z",
+    "requestIp": "127.0.0.1"
+  },
+  {
+    "id": "code_1778251935235_33c3e3680e2e",
+    "email": "admin@example.com",
+    "subjectType": "admin",
+    "subjectId": "admin_1778251935225",
+    "codeHash": "521f182162ec1f4050d554608b62a42ad8eb46fb8fd10e8efb2c37f287263b81",
+    "createdAt": "2026-05-08T14:52:15.235Z",
+    "updatedAt": "2026-05-08T14:52:15.235Z",
+    "expiresAt": "2026-05-08T14:57:15.235Z",
+    "usedAt": "",
+    "revokedAt": "2026-05-08T14:52:15.235Z",
+    "requestIp": "127.0.0.1"
+  },
+  {
+    "id": "code_1778251935235_cfd9c6fba7b5",
+    "email": "admin@example.com",
+    "subjectType": "admin",
+    "subjectId": "admin_1778251935225",
+    "codeHash": "77393969bbb3ff4de77cdac9911a6e574931abf46fa7d5adebab08726095320b",
+    "createdAt": "2026-05-08T14:52:15.235Z",
+    "updatedAt": "2026-05-08T14:52:15.235Z",
+    "expiresAt": "2026-05-08T14:57:15.235Z",
+    "usedAt": "",
+    "revokedAt": "",
+    "requestIp": "127.0.0.1"
+  }
+]

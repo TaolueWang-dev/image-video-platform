@@ -1,0 +1,15 @@
+[
+  {
+    "id": "code_1778252642855_ab5c565d180c",
+    "email": "user1@example.com",
+    "subjectType": "user",
+    "subjectId": "user_1",
+    "codeHash": "d9d9c43b3508aeef531d4b1ef5f60e4bce65b83f81630a1f920e12020c5b3299",
+    "createdAt": "2026-05-08T15:04:02.855Z",
+    "updatedAt": "2026-05-08T15:04:02.855Z",
+    "expiresAt": "2026-05-08T15:09:02.855Z",
+    "usedAt": "2026-05-08T15:04:02.855Z",
+    "revokedAt": "",
+    "requestIp": "127.0.0.1"
+  }
+]

@@ -1,0 +1,10 @@
+[
+  {
+    "id": "account_user_1",
+    "userId": "user_1",
+    "balance": 0,
+    "currency": "CNY",
+    "createdAt": "2026-05-08T15:04:02.856Z",
+    "updatedAt": "2026-05-08T15:04:02.856Z"
+  }
+]

@@ -1,0 +1,31 @@
+[
+  {
+    "id": "order_other",
+    "userId": "user_2",
+    "outTradeNo": "trade_other",
+    "channel": "alipay",
+    "amount": 500,
+    "currency": "CNY",
+    "subject": "Other",
+    "status": "pending",
+    "createdAt": "2026-05-08T15:01:57.881Z",
+    "updatedAt": "2026-05-08T15:01:57.881Z",
+    "metadata": {},
+    "paymentProvider": "junliai",
+    "paymentType": "alipay"
+  },
+  {
+    "id": "order_legacy",
+    "outTradeNo": "trade_legacy",
+    "channel": "alipay",
+    "amount": 700,
+    "currency": "CNY",
+    "subject": "Legacy",
+    "status": "pending",
+    "createdAt": "2026-05-08T15:01:57.881Z",
+    "updatedAt": "2026-05-08T15:01:57.881Z",
+    "metadata": {},
+    "paymentProvider": "junliai",
+    "paymentType": "alipay"
+  }
+]

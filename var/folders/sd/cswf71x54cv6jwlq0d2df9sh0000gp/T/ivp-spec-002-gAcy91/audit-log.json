@@ -1,0 +1,15 @@
+[
+  {
+    "type": "user.login",
+    "actorType": "user",
+    "actorId": "user_1",
+    "targetType": "session",
+    "targetId": "sess_1778252703876_6e934c05d74b",
+    "metadata": {
+      "email": "user1@example.com",
+      "ip": "127.0.0.1",
+      "role": ""
+    },
+    "createdAt": "2026-05-08T15:05:03.876Z"
+  }
+]

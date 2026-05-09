@@ -1,0 +1,25 @@
+[
+  {
+    "id": "task_other",
+    "userId": "user_2",
+    "sessionId": "video_other",
+    "prompt": "other",
+    "model": "seed",
+    "status": "queued",
+    "request": {},
+    "remote": {},
+    "createdAt": "2026-05-08T15:01:57.881Z",
+    "updatedAt": "2026-05-08T15:01:57.881Z"
+  },
+  {
+    "id": "task_legacy",
+    "sessionId": "video_legacy",
+    "prompt": "legacy",
+    "model": "seed",
+    "status": "queued",
+    "request": {},
+    "remote": {},
+    "createdAt": "2026-05-08T15:01:57.881Z",
+    "updatedAt": "2026-05-08T15:01:57.881Z"
+  }
+]

@@ -1,0 +1,139 @@
+[
+  {
+    "id": "order_other",
+    "userId": "user_2",
+    "outTradeNo": "trade_other",
+    "channel": "alipay",
+    "amount": 500,
+    "currency": "CNY",
+    "subject": "Other",
+    "status": "pending",
+    "createdAt": "2026-05-08T15:05:03.873Z",
+    "updatedAt": "2026-05-08T15:05:03.873Z",
+    "metadata": {},
+    "paymentProvider": "junliai",
+    "paymentType": "alipay"
+  },
+  {
+    "id": "order_legacy",
+    "outTradeNo": "trade_legacy",
+    "channel": "alipay",
+    "amount": 700,
+    "currency": "CNY",
+    "subject": "Legacy",
+    "status": "paid",
+    "createdAt": "2026-05-08T15:05:03.873Z",
+    "updatedAt": "2026-05-08T15:05:03.894Z",
+    "metadata": {},
+    "paymentProvider": "junliai",
+    "paymentType": "alipay",
+    "paidAt": "2026-05-08T15:05:03.894Z",
+    "notifyPayload": {
+      "status": "TRADE_SUCCESS"
+    }
+  },
+  {
+    "id": "order_1778252703887_7f07c1b136b4",
+    "userId": "user_1",
+    "outTradeNo": "junliai_1778252703887_4a441f5eb497",
+    "channel": "alipay",
+    "amount": 100,
+    "currency": "CNY",
+    "subject": "Spec 002 recharge",
+    "status": "paid",
+    "createdAt": "2026-05-08T15:05:03.887Z",
+    "updatedAt": "2026-05-08T15:05:03.893Z",
+    "metadata": {
+      "source": "spec-002"
+    },
+    "paymentProvider": "junliai",
+    "paymentType": "alipay",
+    "orderId": "order_1778252703887_7f07c1b136b4",
+    "order_id": "order_1778252703887_7f07c1b136b4",
+    "out_trade_no": "junliai_1778252703887_4a441f5eb497",
+    "method": "alipay",
+    "payType": "alipay",
+    "pay_type": "alipay",
+    "payInfo": "",
+    "pay_info": "",
+    "paymentPayload": {
+      "integrationMode": "skeleton",
+      "provider": "junliai",
+      "gateway": "https://pay.junliai.com/api/pay/create",
+      "method": "web",
+      "type": "alipay",
+      "requestBody": {
+        "pid": "",
+        "method": "web",
+        "type": "alipay",
+        "out_trade_no": "junliai_1778252703887_4a441f5eb497",
+        "notify_url": "http://localhost:3000/api/payments/junliai/notify",
+        "name": "Spec 002 recharge",
+        "money": "1.00",
+        "clientip": "127.0.0.1",
+        "timestamp": "1778252703",
+        "sign_type": "RSA",
+        "device": "pc",
+        "param": "{\"orderId\":\"order_1778252703887_7f07c1b136b4\",\"channel\":\"alipay\",\"metadata\":{\"source\":\"spec-002\"}}"
+      },
+      "verified": false,
+      "payType": "",
+      "payInfo": "",
+      "providerPayload": ""
+    },
+    "payment_payload": {
+      "integrationMode": "skeleton",
+      "provider": "junliai",
+      "gateway": "https://pay.junliai.com/api/pay/create",
+      "method": "web",
+      "type": "alipay",
+      "requestBody": {
+        "pid": "",
+        "method": "web",
+        "type": "alipay",
+        "out_trade_no": "junliai_1778252703887_4a441f5eb497",
+        "notify_url": "http://localhost:3000/api/payments/junliai/notify",
+        "name": "Spec 002 recharge",
+        "money": "1.00",
+        "clientip": "127.0.0.1",
+        "timestamp": "1778252703",
+        "sign_type": "RSA",
+        "device": "pc",
+        "param": "{\"orderId\":\"order_1778252703887_7f07c1b136b4\",\"channel\":\"alipay\",\"metadata\":{\"source\":\"spec-002\"}}"
+      },
+      "verified": false,
+      "payType": "",
+      "payInfo": "",
+      "providerPayload": ""
+    },
+    "payment": {
+      "integrationMode": "skeleton",
+      "provider": "junliai",
+      "gateway": "https://pay.junliai.com/api/pay/create",
+      "method": "web",
+      "type": "alipay",
+      "requestBody": {
+        "pid": "",
+        "method": "web",
+        "type": "alipay",
+        "out_trade_no": "junliai_1778252703887_4a441f5eb497",
+        "notify_url": "http://localhost:3000/api/payments/junliai/notify",
+        "name": "Spec 002 recharge",
+        "money": "1.00",
+        "clientip": "127.0.0.1",
+        "timestamp": "1778252703",
+        "sign_type": "RSA",
+        "device": "pc",
+        "param": "{\"orderId\":\"order_1778252703887_7f07c1b136b4\",\"channel\":\"alipay\",\"metadata\":{\"source\":\"spec-002\"}}"
+      },
+      "verified": false,
+      "payType": "",
+      "payInfo": "",
+      "providerPayload": ""
+    },
+    "paidAt": "2026-05-08T15:05:03.893Z",
+    "notifyPayload": {
+      "status": "TRADE_SUCCESS"
+    }
+  }
+]

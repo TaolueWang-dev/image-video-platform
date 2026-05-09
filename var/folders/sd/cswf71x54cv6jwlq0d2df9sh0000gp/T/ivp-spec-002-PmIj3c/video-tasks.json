@@ -1,0 +1,73 @@
+[
+  {
+    "id": "task_other",
+    "userId": "user_2",
+    "sessionId": "video_other",
+    "prompt": "other",
+    "model": "seed",
+    "status": "queued",
+    "request": {},
+    "remote": {},
+    "createdAt": "2026-05-08T15:04:02.848Z",
+    "updatedAt": "2026-05-08T15:04:02.848Z"
+  },
+  {
+    "id": "task_legacy",
+    "sessionId": "video_legacy",
+    "prompt": "legacy",
+    "model": "seed",
+    "status": "queued",
+    "request": {},
+    "remote": {},
+    "createdAt": "2026-05-08T15:04:02.848Z",
+    "updatedAt": "2026-05-08T15:04:02.848Z"
+  },
+  {
+    "id": "task_spec_002",
+    "userId": "user_1",
+    "taskId": "task_spec_002",
+    "task_id": "task_spec_002",
+    "sessionId": "video_session_1778252642865_bd6d2e9e9785",
+    "session_id": "video_session_1778252642865_bd6d2e9e9785",
+    "parentId": "",
+    "parent_id": "",
+    "kind": "generation",
+    "prompt": "spec 002 video",
+    "model": "doubao-seedance-2-0-260128",
+    "status": "queued",
+    "duration": 5,
+    "resolution": "720p",
+    "ratio": "16:9",
+    "progress": "",
+    "attachments": [],
+    "videoUrl": "",
+    "video_url": "",
+    "outputUrl": "",
+    "output_url": "",
+    "resultUrl": "",
+    "result_url": "",
+    "error": "",
+    "message": "",
+    "request": {
+      "model": "doubao-seedance-2-0-260128",
+      "content": [
+        {
+          "type": "text",
+          "text": "spec 002 video"
+        }
+      ],
+      "resolution": "720p",
+      "ratio": "16:9",
+      "duration": 5,
+      "generate_audio": true,
+      "callback_url": "http://localhost:3000/api/videos/tasks/callback",
+      "watermark": false
+    },
+    "remote": {
+      "id": "task_spec_002",
+      "status": "queued"
+    },
+    "createdAt": "2026-05-08T15:04:02.865Z",
+    "updatedAt": "2026-05-08T15:04:02.865Z"
+  }
+]

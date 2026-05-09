@@ -1,0 +1,18 @@
+[
+  {
+    "eventKey": "evt_spec_002",
+    "orderId": "order_1778252703887_7f07c1b136b4",
+    "provider": "junliai",
+    "providerTradeNo": "provider_trade_1",
+    "duplicate": false,
+    "createdAt": "2026-05-08T15:05:03.893Z"
+  },
+  {
+    "eventKey": "evt_spec_002_legacy",
+    "orderId": "order_legacy",
+    "provider": "junliai",
+    "providerTradeNo": "provider_trade_legacy",
+    "duplicate": false,
+    "createdAt": "2026-05-08T15:05:03.894Z"
+  }
+]

@@ -1,0 +1,16 @@
+[
+  {
+    "id": "sess_1778252642856_8704d013307f",
+    "subjectType": "user",
+    "subjectId": "user_1",
+    "email": "user1@example.com",
+    "role": "",
+    "createdAt": "2026-05-08T15:04:02.855Z",
+    "updatedAt": "2026-05-08T15:04:02.867Z",
+    "lastSeenAt": "2026-05-08T15:04:02.867Z",
+    "expiresAt": "2026-05-15T15:04:02.855Z",
+    "revokedAt": "",
+    "ip": "127.0.0.1",
+    "userAgent": ""
+  }
+]

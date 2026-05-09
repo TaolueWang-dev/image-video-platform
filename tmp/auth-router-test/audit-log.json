@@ -1,0 +1,39 @@
+[
+  {
+    "type": "admin.seeded",
+    "actorType": "system",
+    "actorId": "bootstrap",
+    "targetType": "admin",
+    "targetId": "admin_1778251935225",
+    "metadata": {
+      "email": "admin@example.com",
+      "role": "super_admin"
+    },
+    "createdAt": "2026-05-08T14:52:15.225Z"
+  },
+  {
+    "type": "admin.login",
+    "actorType": "admin",
+    "actorId": "admin_1778251935225",
+    "targetType": "session",
+    "targetId": "sess_1778251935233_303d98f48715",
+    "metadata": {
+      "email": "admin@example.com",
+      "ip": "127.0.0.1",
+      "role": "super_admin"
+    },
+    "createdAt": "2026-05-08T14:52:15.232Z"
+  },
+  {
+    "type": "admin.logout",
+    "actorType": "admin",
+    "actorId": "admin_1778251935225",
+    "targetType": "session",
+    "targetId": "sess_1778251935233_303d98f48715",
+    "metadata": {
+      "email": "admin@example.com",
+      "ip": "127.0.0.1"
+    },
+    "createdAt": "2026-05-08T14:52:15.234Z"
+  }
+]

@@ -1,0 +1,14 @@
+[
+  {
+    "type": "admin.seeded",
+    "actorType": "system",
+    "actorId": "bootstrap",
+    "targetType": "admin",
+    "targetId": "admin_1778251868513",
+    "metadata": {
+      "email": "admin@example.com",
+      "role": "super_admin"
+    },
+    "createdAt": "2026-05-08T14:51:08.513Z"
+  }
+]

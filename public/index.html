@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>概览看板</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&amp;family=Inter:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="/styles.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "secondary-fixed-dim": "#c4c7c9",
+                      "surface-container-low": "#eff4ff",
+                      "on-error": "#ffffff",
+                      "on-tertiary": "#ffffff",
+                      "inverse-primary": "#adc6ff",
+                      "surface-container-lowest": "#ffffff",
+                      "on-primary-container": "#fefcff",
+                      "on-tertiary-fixed-variant": "#2f2ebe",
+                      "secondary-container": "#e0e3e5",
+                      "surface-container-highest": "#d3e4fe",
+                      "error-container": "#ffdad6",
+                      "surface": "#f8f9ff",
+                      "on-primary-fixed": "#001a42",
+                      "on-primary": "#ffffff",
+                      "inverse-on-surface": "#eaf1ff",
+                      "primary-fixed-dim": "#adc6ff",
+                      "surface-container-high": "#dce9ff",
+                      "on-tertiary-fixed": "#07006c",
+                      "outline-variant": "#c2c6d6",
+                      "on-secondary": "#ffffff",
+                      "surface-bright": "#f8f9ff",
+                      "surface-container": "#e5eeff",
+                      "secondary": "#5c5f61",
+                      "inverse-surface": "#213145",
+                      "on-error-container": "#93000a",
+                      "surface-tint": "#005ac2",
+                      "surface-variant": "#d3e4fe",
+                      "tertiary": "#4648d4",
+                      "on-primary-fixed-variant": "#004395",
+                      "on-tertiary-container": "#fffbff",
+                      "primary-fixed": "#d8e2ff",
+                      "on-secondary-fixed-variant": "#444749",
+                      "surface-dim": "#cbdbf5",
+                      "primary-container": "#2170e4",
+                      "on-secondary-fixed": "#191c1e",
+                      "on-secondary-container": "#626567",
+                      "on-surface": "#0b1c30",
+                      "outline": "#727785",
+                      "background": "#f8f9ff",
+                      "error": "#ba1a1a",
+                      "secondary-fixed": "#e0e3e5",
+                      "on-background": "#0b1c30",
+                      "on-surface-variant": "#424754",
+                      "tertiary-container": "#6063ee",
+                      "tertiary-fixed-dim": "#c0c1ff",
+                      "primary": "#0058be",
+                      "tertiary-fixed": "#e1e0ff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "base": "8px",
+                      "gutter": "24px",
+                      "container-max": "1280px",
+                      "lg": "48px",
+                      "sm": "12px",
+                      "md": "24px",
+                      "xs": "4px",
+                      "xl": "80px"
+              },
+              "fontFamily": {
+                      "display": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "h2": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "label-sm": [
+                              "Inter"
+                      ],
+                      "h1": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "display": [
+                              "48px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "1.6",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "h2": [
+                              "24px",
+                              {
+                                      "lineHeight": "1.4",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-sm": [
+                              "14px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "letterSpacing": "0.01em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "h1": [
+                              "32px",
+                              {
+                                      "lineHeight": "1.3",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "1.6",
+                                      "fontWeight": "400"
+                              }
+                      ]
+              }
+            }
+          }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body-md font-body-md antialiased min-h-screen flex selection:bg-primary-container selection:text-on-primary-container" data-page="home">
+<!-- SideNavBar (WEB) -->
+<nav class="hidden md:flex h-screen w-64 fixed left-0 top-0 rounded-r-xl shadow-sm bg-surface-bright shadow-[0_10_30px_-5px_rgba(0,0,0,0.04)] z-50 flex-col gap-sm p-sm">
+<div class="px-4 py-6 mb-4 flex items-center gap-sm">
+<div class="w-10 h-10 rounded-lg bg-primary-container flex items-center justify-center text-on-primary-container">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</div>
+<div>
+<h1 class="font-h2 text-h2 font-bold text-primary tracking-tight">Astral Forge</h1>
+<p class="font-label-sm text-label-sm text-on-surface-variant">gpt-image-2和seeddance2.0创作平台</p>
+</div>
+</div>
+<div class="flex-1 flex flex-col gap-1">
+<a class="nav-link bg-primary-container text-on-primary-container rounded-xl font-bold flex items-center px-4 py-3 scale-98 transition-transform duration-200 shadow-sm" data-nav="home" href="/">
+<span class="material-symbols-outlined mr-3" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-label-sm text-label-sm">首页</span>
+</a>
+<a class="nav-link text-on-surface-variant flex items-center px-4 py-3 hover:bg-surface-container-high transition-all duration-300 rounded-xl scale-98 transition-transform duration-200" data-nav="image" href="/image">
+<span class="material-symbols-outlined mr-3">image</span>
+<span class="font-label-sm text-label-sm">图片生成</span>
+</a>
+<a class="nav-link text-on-surface-variant flex items-center px-4 py-3 hover:bg-surface-container-high transition-all duration-300 rounded-xl scale-98 transition-transform duration-200" data-nav="video" href="/video">
+<span class="material-symbols-outlined mr-3">movie</span>
+<span class="font-label-sm text-label-sm">视频生成</span>
+</a>
+<a class="nav-link text-on-surface-variant flex items-center px-4 py-3 hover:bg-surface-container-high transition-all duration-300 rounded-xl scale-98 transition-transform duration-200" data-nav="recharge" href="/recharge">
+<span class="material-symbols-outlined mr-3">payments</span>
+<span class="font-label-sm text-label-sm">账单中心</span>
+</a>
+<a class="nav-link text-on-surface-variant flex items-center px-4 py-3 hover:bg-surface-container-high transition-all duration-300 rounded-xl scale-98 transition-transform duration-200" data-nav="profile" href="/profile">
+<span class="material-symbols-outlined mr-3">account_circle</span>
+<span class="font-label-sm text-label-sm">个人中心</span>
+</a>
+<a class="nav-link text-on-surface-variant flex items-center px-4 py-3 hover:bg-surface-container-high transition-all duration-300 rounded-xl scale-98 transition-transform duration-200" data-nav="admin" href="/admin">
+<span class="material-symbols-outlined mr-3">shield_person</span>
+<span class="font-label-sm text-label-sm">后台入口</span>
+</a>
+</div>
+<div class="mt-auto pt-4 border-t border-outline-variant/20" id="workspace-sidebar-slot">
+<div class="flex items-start gap-3 px-4 py-2 rounded-xl bg-white/70 border border-white/70 shadow-[0_18px_32px_-24px_rgba(15,23,42,0.22)]">
+<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-sky-100 text-sky-700">
+<span class="material-symbols-outlined text-[20px]">account_circle</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-label-sm text-label-sm font-medium text-on-surface truncate" id="workspace-sidebar-title">未登录</p>
+<p class="text-xs text-on-surface-variant truncate" id="workspace-sidebar-subtitle">登录后可查看工作台与后台入口</p>
+<div class="mt-3 flex flex-wrap gap-2" id="workspace-sidebar-links"></div>
+</div>
+</div>
+</div>
+</div>
+</nav>
+<!-- Main Content Wrapper -->
+<div class="flex-1 md:ml-64 flex flex-col min-h-screen">
+<!-- TopNavBar -->
+<header class="docked full-width top-0 z-50 sticky bg-surface/80 backdrop-blur-xl shadow-[0_10px_30px_-5px_rgba(0,0,0,0.04)]">
+<div class="flex justify-between items-center w-full px-md py-sm max-w-container-max mx-auto">
+<div class="flex items-center gap-sm md:hidden">
+<div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-on-primary text-[20px]" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</div>
+<span class="font-display text-h2 font-bold text-primary tracking-tight">Astral Forge</span>
+</div>
+<!-- Search Bar Placeholder for Web (Left Aligned when sidebar present, hidden here to keep it clean as per "soft minimalism") -->
+<div class="hidden md:flex flex-1"></div>
+<!-- Trailing Actions -->
+<div class="flex items-center gap-sm">
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-primary-container/10 transition-all duration-300 ease-out hover:text-primary" id="refresh-account" type="button">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-primary-container/10 transition-all duration-300 ease-out hover:text-primary relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<div class="w-10 h-10 rounded-full bg-surface-container-high ml-sm overflow-hidden border border-outline-variant/20 cursor-pointer hover:ring-2 ring-primary/20 transition-all">
+<img alt="User profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC4Re1_2zIKXpJqP66jlpAya7KlIMrnuX72CJKvWljF7KF60BPtUbElUIxvcijFXb7aCcZIpuOAuvnDSWoVc97bkpNlZnxt_U0C3F-jaJtLOkURzvggVtLKQnrvesUpmq3mdCazncUB1R4vNMXElnt3wB6VI1ESdFb9BPR0m_K0w3BZkC2eCzoCXUd_hfTQv6gbgD_43RpMP3FE4MGykFZDliBBdpSsWDW3RMB0awmyzqz98pg4OmyzyxJPuCoE4DAmMsPjI4RkyxI"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="flex-1 p-md md:p-lg max-w-container-max mx-auto w-full flex flex-col gap-lg">
+<!-- Page Header -->
+<div>
+<h2 class="font-display text-display text-on-surface tracking-tight mb-xs">概览看板</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant">欢迎回来，这里是你当前工作区的整体摘要。</p>
+</div>
+<!-- Stats Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-md">
+<!-- Credits Card -->
+<div class="bg-surface-container-lowest rounded-xl p-gutter shadow-[0_10px_30px_-5px_rgba(0,0,0,0.04)] flex flex-col gap-sm relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors"></div>
+<div class="flex items-center gap-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">stars</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider">额度</span>
+</div>
+<div class="flex items-baseline gap-xs">
+<span class="font-display text-display text-on-surface" id="account-balance">24,500</span>
+<span class="font-body-lg text-body-lg text-on-surface-variant" id="account-unit">点</span>
+</div>
+<div class="font-body-md text-body-md text-on-surface-variant" id="account-meta">账户信息已更新</div>
+<a class="font-body-md text-body-md text-primary mt-auto flex items-center gap-xs" href="/recharge">
+<span class="material-symbols-outlined text-[16px]">add_circle</span>
+<span>立即充值</span>
+</a>
+</div>
+<!-- Images Card -->
+<div class="bg-surface-container-lowest rounded-xl p-gutter shadow-[0_10px_30px_-5px_rgba(0,0,0,0.04)] flex flex-col gap-sm relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors"></div>
+<div class="flex items-center gap-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-tertiary" style="font-variation-settings: 'FILL' 1;">image</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider">图片</span>
+</div>
+<div class="flex items-baseline gap-xs">
+<span class="font-display text-display text-on-surface" id="metric-orders">1,284</span>
+<span class="font-body-lg text-body-lg text-on-surface-variant">/5,000</span>
+</div>
+<div class="w-full bg-surface-container h-2 rounded-full mt-auto overflow-hidden">
+<div class="bg-tertiary h-full rounded-full w-[25%]"></div>
+</div>
+</div>
+<!-- Videos Card -->
+<div class="bg-surface-container-lowest rounded-xl p-gutter shadow-[0_10px_30px_-5px_rgba(0,0,0,0.04)] flex flex-col gap-sm relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-primary-container/5 rounded-full blur-2xl group-hover:bg-primary-container/10 transition-colors"></div>
+<div class="flex items-center gap-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-primary-container" style="font-variation-settings: 'FILL' 1;">movie</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider">视频</span>
+</div>
+<div class="flex items-baseline gap-xs">
+<span class="font-display text-display text-on-surface" id="metric-video-tasks">42</span>
+<span class="font-body-lg text-body-lg text-on-surface-variant">/100</span>
+</div>
+<div class="w-full bg-surface-container h-2 rounded-full mt-auto overflow-hidden">
+<div class="bg-primary-container h-full rounded-full w-[42%]"></div>
+</div>
+</div>
+</div>
+<!-- Quick Actions Section -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+<a class="bg-primary text-on-primary rounded-xl p-gutter flex items-center justify-between shadow-[0_10px_30px_-5px_rgba(0,88,190,0.2)] hover:shadow-[0_15px_40px_-5px_rgba(0,88,190,0.3)] hover:-translate-y-1 transition-all duration-300 text-left group" href="/image">
+<div>
+<h3 class="font-h1 text-h1 mb-xs">新建图片任务</h3>
+<p class="font-body-md text-on-primary/80">开始生成高质量图片内容。</p>
+</div>
+<div class="w-12 h-12 rounded-full bg-on-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-[28px]">brush</span>
+</div>
+</a>
+<a class="bg-surface-container-highest text-on-surface rounded-xl p-gutter flex items-center justify-between shadow-[0_10px_30px_-5px_rgba(0,0,0,0.04)] hover:shadow-[0_15px_40px_-5px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 text-left group border border-outline-variant/10 hover:border-primary/30" href="/video">
+<div>
+<h3 class="font-h1 text-h1 text-primary mb-xs">新建视频任务</h3>
+<p class="font-body-md text-on-surface-variant">创建高质量 AI 视频片段。</p>
+</div>
+<div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-primary text-[28px]">videocam</span>
+</div>
+</a>
+</div>
+<!-- Recent Tasks List -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+<div class="bg-surface-container-lowest rounded-xl p-md shadow-[0_10px_30px_-5px_rgba(0,0,0,0.04)]">
+<div class="flex items-center justify-between mb-sm">
+<h3 class="font-h2 text-h2 text-on-surface">账户概览</h3>
+<span class="hidden" id="metric-pending-orders">0</span>
+</div>
+<div id="account-summary">账户信息加载中...</div>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-md shadow-[0_10px_30px_-5px_rgba(0,0,0,0.04)]">
+<div class="flex items-center justify-between mb-sm">
+<h3 class="font-h2 text-h2 text-on-surface">支付状态</h3>
+<a class="font-label-sm text-label-sm text-primary hover:text-primary-container transition-colors" href="/recharge">打开账单中心</a>
+</div>
+<div class="font-body-md text-body-md text-on-surface-variant">最近订单和任务数据已从当前后端同步。</div>
+</div>
+</div>
+<div>
+<div class="flex items-center justify-between mb-md">
+<h3 class="font-h2 text-h2 text-on-surface">最近任务</h3>
+<a class="font-label-sm text-label-sm text-primary hover:text-primary-container transition-colors" href="/video">查看全部</a>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+<div class="bg-surface-container-lowest rounded-xl p-md shadow-[0_10px_30px_-5px_rgba(0,0,0,0.02)]">
+<div class="flex items-center justify-between mb-sm">
+<h4 class="font-h2 text-h2 text-on-surface text-[18px]">最近订单</h4>
+<a class="font-label-sm text-label-sm text-primary hover:text-primary-container transition-colors" href="/recharge">账单中心</a>
+</div>
+<div id="recent-orders">暂无充值订单</div>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-md shadow-[0_10px_30px_-5px_rgba(0,0,0,0.02)]">
+<div class="flex items-center justify-between mb-sm">
+<h4 class="font-h2 text-h2 text-on-surface text-[18px]">最近视频任务</h4>
+<a class="font-label-sm text-label-sm text-primary hover:text-primary-container transition-colors" href="/video">进入工作区</a>
+</div>
+<div id="recent-video-tasks">暂无视频任务</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<script defer src="/app.js"></script>
+</body></html>

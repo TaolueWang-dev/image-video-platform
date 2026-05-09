@@ -1,0 +1,10 @@
+[
+  {
+    "id": "admin_1778251868513",
+    "email": "admin@example.com",
+    "role": "super_admin",
+    "status": "active",
+    "createdAt": "2026-05-08T14:51:08.513Z",
+    "updatedAt": "2026-05-08T14:51:08.513Z"
+  }
+]

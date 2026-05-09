@@ -1,0 +1,12 @@
+.env
+node_modules
+data/*.json
+*.log
+.DS_Store
+
+# Ralph Wiggum runtime artifacts
+logs/*.log
+logs/*.txt
+PROMPT_build.md
+PROMPT_plan.md
+completion_log/

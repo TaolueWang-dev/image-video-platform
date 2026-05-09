@@ -1,0 +1,21 @@
+[
+  {
+    "id": "img_other",
+    "userId": "user_2",
+    "sessionId": "session_other",
+    "prompt": "other",
+    "model": "gpt-image-2",
+    "images": [],
+    "createdAt": "2026-05-08T15:01:57.881Z",
+    "updatedAt": "2026-05-08T15:01:57.881Z"
+  },
+  {
+    "id": "img_legacy",
+    "sessionId": "session_legacy",
+    "prompt": "legacy",
+    "model": "gpt-image-2",
+    "images": [],
+    "createdAt": "2026-05-08T15:01:57.881Z",
+    "updatedAt": "2026-05-08T15:01:57.881Z"
+  }
+]

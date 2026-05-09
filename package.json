@@ -1,0 +1,15 @@
+{
+  "name": "image-video-platform",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node src/server.js",
+    "start": "node src/server.js",
+    "check": "node --check src/server.js && node --check public/app.js && node --check tests/smoke-runner.mjs && bash -n tests/smoke.sh && bash -n scripts/smoke-test.sh",
+    "smoke": "bash scripts/smoke-test.sh",
+    "smoke:write": "SMOKE_WRITE=1 bash scripts/smoke-test.sh",
+    "docker:build": "docker build -t image-video-platform .",
+    "docker:run": "docker run --rm -p 3000:3000 --env-file .env -v image-video-platform-data:/app/data image-video-platform"
+  }
+}

@@ -1,0 +1,16 @@
+[
+  {
+    "id": "sess_1778251935233_303d98f48715",
+    "subjectType": "admin",
+    "subjectId": "admin_1778251935225",
+    "email": "admin@example.com",
+    "role": "super_admin",
+    "createdAt": "2026-05-08T14:52:15.232Z",
+    "updatedAt": "2026-05-08T14:52:15.234Z",
+    "lastSeenAt": "2026-05-08T14:52:15.234Z",
+    "expiresAt": "2026-05-15T14:52:15.232Z",
+    "revokedAt": "2026-05-08T14:52:15.234Z",
+    "ip": "127.0.0.1",
+    "userAgent": ""
+  }
+]

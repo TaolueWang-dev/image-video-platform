@@ -1,0 +1,73 @@
+[
+  {
+    "id": "img_other",
+    "userId": "user_2",
+    "sessionId": "session_other",
+    "prompt": "other",
+    "model": "gpt-image-2",
+    "images": [],
+    "createdAt": "2026-05-08T15:02:56.975Z",
+    "updatedAt": "2026-05-08T15:02:56.975Z"
+  },
+  {
+    "id": "img_legacy",
+    "sessionId": "session_legacy",
+    "prompt": "legacy",
+    "model": "gpt-image-2",
+    "images": [],
+    "createdAt": "2026-05-08T15:02:56.975Z",
+    "updatedAt": "2026-05-08T15:02:56.975Z"
+  },
+  {
+    "id": "imgmsg_1778252576987_33d61756f980",
+    "userId": "user_1",
+    "sessionId": "image_session_1778252576987_f44852d7e4ad",
+    "session_id": "image_session_1778252576987_f44852d7e4ad",
+    "parentId": "",
+    "parent_entry_id": "",
+    "kind": "generation",
+    "prompt": "spec 002 image",
+    "input": [],
+    "model": "gpt-image-2",
+    "size": "",
+    "quality": "",
+    "background": "",
+    "outputFormat": "",
+    "output_format": "",
+    "referenceMode": "prompt_only",
+    "reference_mode": "prompt_only",
+    "referenceApplied": false,
+    "reference_applied": false,
+    "referenceDowngraded": false,
+    "reference_downgraded": false,
+    "referenceDowngradeReason": "",
+    "reference_downgrade_reason": "",
+    "request": {
+      "prompt": "spec 002 image",
+      "model": "gpt-image-2"
+    },
+    "response": {
+      "data": [
+        {
+          "b64_json": "ZmFrZQ==",
+          "mime_type": "image/png"
+        }
+      ]
+    },
+    "responseId": "",
+    "previousResponseId": "",
+    "generationCallId": "",
+    "images": [
+      {
+        "id": "image_1",
+        "index": 0,
+        "url": "",
+        "b64Json": "ZmFrZQ==",
+        "mimeType": "image/png",
+        "revisedPrompt": ""
+      }
+    ],
+    "createdAt": "2026-05-08T15:02:56.987Z",
+    "updatedAt": "2026-05-08T15:02:56.987Z"
+  }
+]

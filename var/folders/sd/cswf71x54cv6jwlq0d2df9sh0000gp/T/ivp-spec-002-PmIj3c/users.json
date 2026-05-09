@@ -1,0 +1,18 @@
+[
+  {
+    "id": "user_1",
+    "email": "user1@example.com",
+    "status": "active",
+    "createdAt": "2026-05-08T15:04:02.848Z",
+    "updatedAt": "2026-05-08T15:04:02.855Z",
+    "lastLoginAt": "2026-05-08T15:04:02.855Z"
+  },
+  {
+    "id": "user_2",
+    "email": "user2@example.com",
+    "status": "active",
+    "createdAt": "2026-05-08T15:04:02.848Z",
+    "updatedAt": "2026-05-08T15:04:02.848Z",
+    "lastLoginAt": ""
+  }
+]
