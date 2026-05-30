@@ -205,19 +205,93 @@ docker run --rm \
 
 ### Compose 运行
 
-样例文件见 [deploy/docker-compose.yml](/Users/wangtaolve/image-video-platform/deploy/docker-compose.yml:1)。
+样例文件见 [deploy/docker-compose.yml](deploy/docker-compose.yml)。
 
 ```bash
+cp .env.example .env
+cp deploy/.env.example deploy/.env
 cd deploy
 docker compose up -d --build
 ```
+
+首次对外部署 HTTPS 时，直接按下面的“单机 HTTPS 配置”执行，不要跳过域名和证书准备步骤。
 
 默认会启动：
 
 - `app`: Node 服务
 - `nginx`: 反向代理
 
-反向代理样例见 [deploy/nginx.conf](/Users/wangtaolve/image-video-platform/deploy/nginx.conf:1)。
+反向代理样例见 [deploy/nginx.conf](deploy/nginx.conf)。
+
+### 单机 HTTPS 配置
+
+根目录 `.env` 负责应用本身，至少需要把 `PUBLIC_BASE_URL` 改成外部可访问域名：
+
+```bash
+PUBLIC_BASE_URL=https://your-domain.example
+```
+
+`deploy/.env` 负责 Nginx 和 Certbot，至少需要设置：
+
+```bash
+NGINX_SERVER_NAME=your-domain.example
+NGINX_SSL_CERTIFICATE=/etc/letsencrypt/live/your-domain.example/fullchain.pem
+NGINX_SSL_CERTIFICATE_KEY=/etc/letsencrypt/live/your-domain.example/privkey.pem
+CERTBOT_EMAIL=ops@your-domain.example
+CERTBOT_DOMAINS=your-domain.example
+```
+
+推荐使用当前仓库自带的脚本初始化 HTTPS：
+
+1. 先确认域名已经解析到这台服务器，并且 80/443 端口已放通。
+2. 复制并修改配置文件：
+
+```bash
+cp .env.example .env
+cp deploy/.env.example deploy/.env
+```
+
+3. 修改根目录 `.env` 中的 `PUBLIC_BASE_URL`，以及 `deploy/.env` 中的域名、证书路径和 `CERTBOT_EMAIL`。
+4. 运行初始化脚本。脚本会自动：
+   - 创建 `certbot` 目录
+   - 生成临时自签名证书
+   - 启动 `app` 和 `nginx`
+   - 调用 Certbot 申请正式证书
+   - 重启 `nginx` 载入正式证书
+
+```bash
+cd deploy
+./setup-https.sh
+```
+
+如果你只想先验证流程、不触发正式签发，可以在 `deploy/.env` 里设置：
+
+```bash
+CERTBOT_STAGING=1
+```
+
+证书续期时执行：
+
+```bash
+cd deploy
+./renew-https.sh
+```
+
+后续常规更新代码并重启服务时执行：
+
+```bash
+cd deploy
+./server-up.sh
+```
+
+如果你已经有现成证书，也可以只改 `deploy/.env` 里的 `NGINX_SSL_CERTIFICATE` 和 `NGINX_SSL_CERTIFICATE_KEY` 指向挂载后的容器内路径，然后直接启动：
+
+```bash
+cd deploy
+./server-up.sh
+```
+
+当前 Nginx 配置已经模板化，不需要再手工修改 [deploy/nginx.conf](deploy/nginx.conf) 里的域名；改 `deploy/.env` 即可。
 
 ## 环境变量
 
@@ -235,6 +309,8 @@ docker compose up -d --build
 
 - 视频任务回调地址
 - 聚合支付通知地址
+
+HTTPS 反向代理相关参数见 [deploy/.env.example](deploy/.env.example)。
 
 ### 认证与管理员
 

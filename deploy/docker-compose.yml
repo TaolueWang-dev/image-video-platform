@@ -21,10 +21,21 @@ services:
     depends_on:
       - app
     restart: unless-stopped
+    environment:
+      APP_UPSTREAM_HOST: ${APP_UPSTREAM_HOST:-app}
+      APP_UPSTREAM_PORT: ${APP_UPSTREAM_PORT:-3000}
+      NGINX_SERVER_NAME: ${NGINX_SERVER_NAME:-_}
+      NGINX_SSL_CERTIFICATE: ${NGINX_SSL_CERTIFICATE:-/etc/letsencrypt/live/your-domain.example/fullchain.pem}
+      NGINX_SSL_CERTIFICATE_KEY: ${NGINX_SSL_CERTIFICATE_KEY:-/etc/letsencrypt/live/your-domain.example/privkey.pem}
+      NGINX_CLIENT_MAX_BODY_SIZE: ${NGINX_CLIENT_MAX_BODY_SIZE:-10m}
+      NGINX_ENVSUBST_FILTER: "APP_UPSTREAM_HOST|APP_UPSTREAM_PORT|NGINX_SERVER_NAME|NGINX_SSL_CERTIFICATE|NGINX_SSL_CERTIFICATE_KEY|NGINX_CLIENT_MAX_BODY_SIZE"
     ports:
       - "80:80"
+      - "443:443"
     volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx.conf:/etc/nginx/templates/default.conf.template:ro
+      - ./certbot/www:/var/www/certbot:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
 
 volumes:
   app_data:
