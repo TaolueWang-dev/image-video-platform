@@ -40,6 +40,18 @@ cleanup_legacy_service_containers() {
   "${COMPOSE_CMD[@]}" rm -fs app nginx >/dev/null 2>&1 || true
 }
 
+refresh_nginx_tls_container() {
+  if [[ "${COMPOSE_FLAVOR:-}" == "docker-compose-v1" ]]; then
+    echo "Recreating nginx container to load updated certificate files"
+    "${COMPOSE_CMD[@]}" rm -fs nginx >/dev/null 2>&1 || true
+    "${COMPOSE_CMD[@]}" up -d nginx
+    return 0
+  fi
+
+  echo "Force-recreating nginx container to load updated certificate files"
+  "${COMPOSE_CMD[@]}" up -d --force-recreate nginx
+}
+
 resolve_certbot_cmd() {
   if command -v certbot >/dev/null 2>&1; then
     CERTBOT_CMD=(certbot)
@@ -233,6 +245,6 @@ fi
 "${certbot_args[@]}"
 
 echo "Reloading nginx with the issued certificate"
-"${COMPOSE_CMD[@]}" restart nginx
+refresh_nginx_tls_container
 
 echo "HTTPS setup completed."

@@ -13,16 +13,30 @@ cd "$SCRIPT_DIR"
 resolve_compose_cmd() {
   if docker compose version >/dev/null 2>&1; then
     COMPOSE_CMD=(docker compose)
+    COMPOSE_FLAVOR="docker-compose-v2"
     return 0
   fi
 
   if command -v docker-compose >/dev/null 2>&1; then
     COMPOSE_CMD=(docker-compose)
+    COMPOSE_FLAVOR="docker-compose-v1"
     return 0
   fi
 
   echo "Neither 'docker compose' nor 'docker-compose' is available." >&2
   exit 1
+}
+
+refresh_nginx_tls_container() {
+  if [[ "${COMPOSE_FLAVOR:-}" == "docker-compose-v1" ]]; then
+    echo "Recreating nginx container to load updated certificate files"
+    "${COMPOSE_CMD[@]}" rm -fs nginx >/dev/null 2>&1 || true
+    "${COMPOSE_CMD[@]}" up -d nginx
+    return 0
+  fi
+
+  echo "Force-recreating nginx container to load updated certificate files"
+  "${COMPOSE_CMD[@]}" up -d --force-recreate nginx
 }
 
 resolve_certbot_cmd() {
@@ -73,6 +87,6 @@ renew_args+=("$@")
 
 "${renew_args[@]}"
 
-"${COMPOSE_CMD[@]}" restart nginx
+refresh_nginx_tls_container
 
 echo "Certificate renewal completed."
