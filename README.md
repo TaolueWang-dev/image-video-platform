@@ -241,7 +241,7 @@ CERTBOT_EMAIL=ops@your-domain.example
 CERTBOT_DOMAINS=your-domain.example
 ```
 
-推荐使用当前仓库自带的脚本初始化 HTTPS：
+推荐先在宿主机安装 `certbot`，然后使用当前仓库自带的脚本初始化 HTTPS。脚本会优先使用宿主机 `certbot`，只有在宿主机没有安装而且本地已有 `certbot/certbot` 镜像时，才会回退到 Docker 方式。
 
 1. 先确认域名已经解析到这台服务器，并且 80/443 端口已放通。
 2. 复制并修改配置文件：
@@ -251,8 +251,15 @@ cp .env.example .env
 cp deploy/.env.example deploy/.env
 ```
 
-3. 修改根目录 `.env` 中的 `PUBLIC_BASE_URL`，以及 `deploy/.env` 中的域名、证书路径和 `CERTBOT_EMAIL`。
-4. 运行初始化脚本。脚本会自动：
+3. 在服务器上安装 `certbot`：
+
+```bash
+apt-get update
+apt-get install -y certbot
+```
+
+4. 修改根目录 `.env` 中的 `PUBLIC_BASE_URL`，以及 `deploy/.env` 中的域名、证书路径和 `CERTBOT_EMAIL`。
+5. 运行初始化脚本。脚本会自动：
    - 创建 `certbot` 目录
    - 生成临时自签名证书
    - 启动 `app` 和 `nginx`
@@ -293,7 +300,7 @@ cd deploy
 
 当前 Nginx 配置已经模板化，不需要再手工修改 [deploy/nginx.conf](deploy/nginx.conf) 里的域名；改 `deploy/.env` 即可。
 
-这些脚本会优先使用 `docker compose`，如果服务器还是老版本 Docker，也会自动回退到 `docker-compose`。对于 `docker-compose 1.29.x`，脚本会先清理旧服务容器，绕过常见的 `ContainerConfig` 重建错误。
+这些脚本会优先使用 `docker compose`，如果服务器还是老版本 Docker，也会自动回退到 `docker-compose`。对于 `docker-compose 1.29.x`，脚本会先清理旧服务容器，绕过常见的 `ContainerConfig` 重建错误。证书申请则优先使用宿主机 `certbot`，如果宿主机没有安装，才会尝试使用本地已有的 `certbot/certbot` 镜像。
 
 ## 环境变量
 

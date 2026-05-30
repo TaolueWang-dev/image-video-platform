@@ -9,6 +9,8 @@ DEPLOY_ENV_FILE="${DEPLOY_ENV_FILE:-$SCRIPT_DIR/.env}"
 LETSENCRYPT_CONTAINER_ROOT=/etc/letsencrypt
 HOST_CERT_ROOT="$SCRIPT_DIR/certbot/conf"
 WEBROOT_DIR="$SCRIPT_DIR/certbot/www"
+CERTBOT_WORK_DIR="$SCRIPT_DIR/certbot/work"
+CERTBOT_LOGS_DIR="$SCRIPT_DIR/certbot/logs"
 
 cd "$SCRIPT_DIR"
 
@@ -36,6 +38,29 @@ cleanup_legacy_service_containers() {
 
   echo "Detected legacy docker-compose v1, removing existing service containers before recreate"
   "${COMPOSE_CMD[@]}" rm -fs app nginx >/dev/null 2>&1 || true
+}
+
+resolve_certbot_cmd() {
+  if command -v certbot >/dev/null 2>&1; then
+    CERTBOT_CMD=(certbot)
+    CERTBOT_FLAVOR="host"
+    return 0
+  fi
+
+  if docker image inspect certbot/certbot >/dev/null 2>&1; then
+    CERTBOT_CMD=(
+      docker run --rm
+      -v "$WEBROOT_DIR:/var/www/certbot"
+      -v "$HOST_CERT_ROOT:/etc/letsencrypt"
+      certbot/certbot
+    )
+    CERTBOT_FLAVOR="docker"
+    return 0
+  fi
+
+  echo "Neither host 'certbot' nor local 'certbot/certbot' Docker image is available." >&2
+  echo "Install certbot on the host, or run: docker pull certbot/certbot" >&2
+  exit 1
 }
 
 read_env_value() {
@@ -94,6 +119,7 @@ fi
 
 resolve_compose_cmd
 cleanup_legacy_service_containers
+resolve_certbot_cmd
 
 load_env_var PUBLIC_BASE_URL
 load_env_var NGINX_SERVER_NAME
@@ -135,6 +161,8 @@ host_certificate_key_path="${HOST_CERT_ROOT}${NGINX_SSL_CERTIFICATE_KEY#$LETSENC
 
 mkdir -p \
   "$WEBROOT_DIR" \
+  "$CERTBOT_WORK_DIR" \
+  "$CERTBOT_LOGS_DIR" \
   "$(dirname -- "$host_certificate_path")" \
   "$(dirname -- "$host_certificate_key_path")"
 
@@ -166,13 +194,24 @@ fi
 echo "Starting app and nginx"
 "${COMPOSE_CMD[@]}" up -d --build app nginx
 
-certbot_args=(
-  docker run --rm
-  -v "$WEBROOT_DIR:/var/www/certbot"
-  -v "$HOST_CERT_ROOT:/etc/letsencrypt"
-  certbot/certbot certonly
-  --webroot
-  -w /var/www/certbot
+certbot_args=("${CERTBOT_CMD[@]}" certonly)
+
+if [[ "$CERTBOT_FLAVOR" == "host" ]]; then
+  certbot_args+=(
+    --config-dir "$HOST_CERT_ROOT"
+    --work-dir "$CERTBOT_WORK_DIR"
+    --logs-dir "$CERTBOT_LOGS_DIR"
+    --webroot
+    -w "$WEBROOT_DIR"
+  )
+else
+  certbot_args+=(
+    --webroot
+    -w /var/www/certbot
+  )
+fi
+
+certbot_args+=(
   --email "$CERTBOT_EMAIL"
   --agree-tos
   --no-eff-email
@@ -186,7 +225,11 @@ for domain in "${domains[@]}"; do
   certbot_args+=(-d "$domain")
 done
 
-echo "Requesting Let's Encrypt certificate for: ${domains[*]}"
+if [[ "$CERTBOT_FLAVOR" == "host" ]]; then
+  echo "Requesting Let's Encrypt certificate with host certbot for: ${domains[*]}"
+else
+  echo "Requesting Let's Encrypt certificate with Docker certbot for: ${domains[*]}"
+fi
 "${certbot_args[@]}"
 
 echo "Reloading nginx with the issued certificate"
