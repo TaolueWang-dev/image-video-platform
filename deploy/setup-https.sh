@@ -12,6 +12,21 @@ WEBROOT_DIR="$SCRIPT_DIR/certbot/www"
 
 cd "$SCRIPT_DIR"
 
+resolve_compose_cmd() {
+  if docker compose version >/dev/null 2>&1; then
+    COMPOSE_CMD=(docker compose)
+    return 0
+  fi
+
+  if command -v docker-compose >/dev/null 2>&1; then
+    COMPOSE_CMD=(docker-compose)
+    return 0
+  fi
+
+  echo "Neither 'docker compose' nor 'docker-compose' is available." >&2
+  exit 1
+}
+
 read_env_value() {
   local file="$1"
   local key="$2"
@@ -65,6 +80,8 @@ if [[ ! -f "$DEPLOY_ENV_FILE" ]]; then
   echo "Create it first, for example: cp deploy/.env.example deploy/.env" >&2
   exit 1
 fi
+
+resolve_compose_cmd
 
 load_env_var PUBLIC_BASE_URL
 load_env_var NGINX_SERVER_NAME
@@ -135,7 +152,7 @@ if [[ ! -s "$host_certificate_path" || ! -s "$host_certificate_key_path" ]]; the
 fi
 
 echo "Starting app and nginx"
-docker compose up -d --build app nginx
+"${COMPOSE_CMD[@]}" up -d --build app nginx
 
 certbot_args=(
   docker run --rm
@@ -161,6 +178,6 @@ echo "Requesting Let's Encrypt certificate for: ${domains[*]}"
 "${certbot_args[@]}"
 
 echo "Reloading nginx with the issued certificate"
-docker compose restart nginx
+"${COMPOSE_CMD[@]}" restart nginx
 
 echo "HTTPS setup completed."

@@ -9,6 +9,21 @@ DEPLOY_ENV_FILE="${DEPLOY_ENV_FILE:-$SCRIPT_DIR/.env}"
 
 cd "$SCRIPT_DIR"
 
+resolve_compose_cmd() {
+  if docker compose version >/dev/null 2>&1; then
+    COMPOSE_CMD=(docker compose)
+    return 0
+  fi
+
+  if command -v docker-compose >/dev/null 2>&1; then
+    COMPOSE_CMD=(docker-compose)
+    return 0
+  fi
+
+  echo "Neither 'docker compose' nor 'docker-compose' is available." >&2
+  exit 1
+}
+
 if [[ ! -f "$APP_ENV_FILE" ]]; then
   echo "Missing app env file: $APP_ENV_FILE" >&2
   echo "Create it first, for example: cp .env.example .env" >&2
@@ -21,7 +36,8 @@ if [[ ! -f "$DEPLOY_ENV_FILE" ]]; then
   exit 1
 fi
 
+resolve_compose_cmd
 mkdir -p certbot/www certbot/conf
-docker compose up -d --build
+"${COMPOSE_CMD[@]}" up -d --build
 
 echo "Application stack is up."
