@@ -12,16 +12,27 @@ cd "$SCRIPT_DIR"
 resolve_compose_cmd() {
   if docker compose version >/dev/null 2>&1; then
     COMPOSE_CMD=(docker compose)
+    COMPOSE_FLAVOR="docker-compose-v2"
     return 0
   fi
 
   if command -v docker-compose >/dev/null 2>&1; then
     COMPOSE_CMD=(docker-compose)
+    COMPOSE_FLAVOR="docker-compose-v1"
     return 0
   fi
 
   echo "Neither 'docker compose' nor 'docker-compose' is available." >&2
   exit 1
+}
+
+cleanup_legacy_service_containers() {
+  if [[ "${COMPOSE_FLAVOR:-}" != "docker-compose-v1" ]]; then
+    return 0
+  fi
+
+  echo "Detected legacy docker-compose v1, removing existing service containers before recreate"
+  "${COMPOSE_CMD[@]}" rm -fs app nginx >/dev/null 2>&1 || true
 }
 
 if [[ ! -f "$APP_ENV_FILE" ]]; then
@@ -37,6 +48,7 @@ if [[ ! -f "$DEPLOY_ENV_FILE" ]]; then
 fi
 
 resolve_compose_cmd
+cleanup_legacy_service_containers
 mkdir -p certbot/www certbot/conf
 "${COMPOSE_CMD[@]}" up -d --build
 

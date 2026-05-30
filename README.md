@@ -293,7 +293,7 @@ cd deploy
 
 当前 Nginx 配置已经模板化，不需要再手工修改 [deploy/nginx.conf](deploy/nginx.conf) 里的域名；改 `deploy/.env` 即可。
 
-这些脚本会优先使用 `docker compose`，如果服务器还是老版本 Docker，也会自动回退到 `docker-compose`。
+这些脚本会优先使用 `docker compose`，如果服务器还是老版本 Docker，也会自动回退到 `docker-compose`。对于 `docker-compose 1.29.x`，脚本会先清理旧服务容器，绕过常见的 `ContainerConfig` 重建错误。
 
 ## 环境变量
 
